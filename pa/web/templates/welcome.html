@@ -41,6 +41,9 @@
           <option value="">(고르기)</option>
           {% for k, label in p.SEXES.items() %}<option value="{{ k }}" {% if m.get('sex') == k %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select></label>
+      <label class="field">하루 목표 열량(선택)
+        <input class="input-num" type="number" inputmode="numeric" min="800" max="4000" name="kcal_{{ loop.index0 }}" value="{{ m.get('kcal', '') }}"> kcal
+        <span class="meta">비워 두면 나이와 성별에 맞춰 정해요</span></label>
     </fieldset>
   {% endfor %}
   </div>
@@ -72,6 +75,7 @@
     <label class="pick"><input type="radio" name="weekday_cook_min" value="{{ m }}" {% if d.get('weekday_cook_min', 30) == m %}checked{% endif %}><span><strong>{{ m }}분</strong></span></label>
   {% endfor %}
   </div>
+  <label class="pick"><input type="checkbox" name="weekend_lunch" value="1" {% if d.get('weekend_lunch') %}checked{% endif %}><span><strong>주말 점심도 짜 주세요</strong></span></label>
 
 {% elif step == 'budget' %}
   <div class="pick-grid">

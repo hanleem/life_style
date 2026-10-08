@@ -67,3 +67,19 @@ def test_every_page_carries_the_chosen_theme(con, tmp_path, theme):
     for path in ("/", "/tasks", "/settings"):
         html = c.get(path).text
         assert f'data-theme="{theme}"' in html and 'data-font="large"' in html, path
+
+
+def test_health_card_shows_growth_badge_and_money_card_shows_budget(con, tmp_path):
+    import json
+    from pa.core import fallback_meals, meals
+    meals.ensure_schema(con)
+    plan = fallback_meals.plan_for(meals.week_window(__import__("datetime").date(2026, 10, 8)), profile.defaults()["members"])
+    con.execute("INSERT INTO meal_plan(week_start, plan_json, created_at) VALUES('2026-10-10', ?, 't')", (json.dumps(plan, ensure_ascii=False),))
+    html = _client(con, tmp_path, interests=["health", "money"], weekly_budget_won=250000).get("/").text
+    assert 'id="card-health"' in html and "이번 주 성장 영양 체크 · 모두 충족" in html
+    assert 'id="card-money"' in html and "250,000원" in html
+
+
+def test_health_card_without_a_plan_explains_itself(con, tmp_path):
+    html = _client(con, tmp_path, interests=["health"]).get("/").text
+    assert 'id="card-health"' in html and "식단이 나오면" in html

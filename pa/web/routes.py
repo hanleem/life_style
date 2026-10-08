@@ -62,9 +62,11 @@ async def home(request: Request, _: str = Depends(require_owner)):
         except ValueError:
             sec = {}
     pending = con.execute("SELECT COUNT(*) FROM draft WHERE status='review'").fetchone()[0]
-    cards = home_cards.visible(profile.load(request.app.state.settings.data_dir))
+    prof = profile.load(request.app.state.settings.data_dir)
+    cards = home_cards.visible(prof)
     return templates.TemplateResponse(request, "home.html", {
-        "interest_cards": cards, "card_data": home_cards.data(con, cards),
+        "interest_cards": cards, "card_data": home_cards.data(con, cards, prof),
+        "use_coupang": "coupang" in ((prof or {}).get("shops") or ["coupang"]),
         "sec": sec, "must": ((sec or {}).get("today_must") or [])[:3], "rest": (sec or {}).get("rest_count", 0),
         "events": (sec or {}).get("calendar") or [], "cal_note": (sec or {}).get("calendar_note"),
         "pending": pending, "copy": briefing_copy, "meal_card": meals.home_card(con),

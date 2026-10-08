@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from pa.clock import utcnow
-from pa.core import meals, nutrition, pantry, supplies
+from pa.core import growth, household, meals, nutrition, pantry, profile, supplies
 from pa.web.auth import require_owner
 from pa.web.ui import make_templates
 
@@ -17,17 +17,26 @@ templates = make_templates()
 @router.get("/meals")
 async def meals_page(request: Request, _: str = Depends(require_owner)):
     plan = meals.latest(request.app.state.con)
-    w = meals.week_window(date.fromisoformat(plan["week_start"])) if plan else None
     con = request.app.state.con
-    for m in (plan or {}).get("meals") or []:   # 끼니별 열량 추정(양을 g 으로 읽을 수 있는 주요 재료 기준)
-        m["kcal"] = nutrition.meal_kcal(m)
+    prof = profile.load(request.app.state.settings.data_dir) or profile.defaults()
+    for m in (plan or {}).get("meals") or []:   # 끼니별 어른 1인분 열량 추정(양을 g 으로 읽을 수 있는 주요 재료 기준)
+        m["kcal"] = meals.meal_kcal_per_portion(m)
+    days = {}
+    for m in (plan or {}).get("meals") or []:
+        days.setdefault(m.get("date"), []).append(m)
+    report = growth.evaluate(plan) if plan else None
     liked = {}
     for g in (plan or {}).get("shopping") or []:
         for i in g.get("items") or []:
             p = pantry.preferred(con, i.get("name") or "")
             if p:
                 liked[i["name"]] = p
-    resp = templates.TemplateResponse(request, "meals.html", {"plan": plan, "w": w, "stock": pantry.list_items(con), "liked": liked, "staples": pantry.list_staples(con), "supplies": supplies.list_orders(con)})
+    resp = templates.TemplateResponse(request, "meals.html", {
+        "plan": plan, "days": sorted(days.items()), "slot_label": household.SLOT_LABEL, "growth": report,
+        "growth_badge": growth.badge(report) if report else None, "family": household.summary(prof["members"]),
+        "use_coupang": "coupang" in (prof.get("shops") or []), "budget": prof["weekly_budget_won"],
+        "stock": pantry.list_items(con), "liked": liked, "staples": pantry.list_staples(con),
+        "supplies": supplies.list_orders(con)})
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
@@ -37,7 +46,8 @@ async def meals_generate(request: Request, _: str = Depends(require_owner)):
     router_ = request.app.state.router
     if router_ is None:
         raise HTTPException(503, "AI를 사용할 수 없습니다")
-    plan = await meals.generate(request.app.state.con, router_, utcnow(), user_initiated=True)
+    prof = profile.load(request.app.state.settings.data_dir) or profile.defaults()
+    plan = await meals.generate(request.app.state.con, router_, utcnow(), user_initiated=True, prof=prof)
     if plan is None:
         raise HTTPException(502, "식단을 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요")
     return {"ok": True, "week_start": plan["week_start"]}

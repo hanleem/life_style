@@ -88,12 +88,14 @@ def _read_answers(key: str, form) -> dict:
         return {"tone": form.get("tone", "")}
     if key == "family":
         rows = [{"role": form.get(f"role_{i}", ""), "name": form.get(f"name_{i}", ""),
-                 "age": form.get(f"age_{i}", ""), "sex": form.get(f"sex_{i}", "")} for i in range(MEMBER_ROWS)]
+                 "age": form.get(f"age_{i}", ""), "sex": form.get(f"sex_{i}", ""), "kcal": form.get(f"kcal_{i}", "")}
+                for i in range(MEMBER_ROWS)]
         return {"members": rows}
     if key == "food":
         return {"allergies": form.get("allergies", ""), "dislikes": form.get("dislikes", "")}
     if key == "cook":
-        return {"cook_skill": form.get("cook_skill", ""), "weekday_cook_min": form.get("weekday_cook_min", "")}
+        return {"cook_skill": form.get("cook_skill", ""), "weekday_cook_min": form.get("weekday_cook_min", ""),
+                "weekend_lunch": form.get("weekend_lunch") == "1"}
     if key == "budget":
         custom = str(form.get("budget_custom", "")).strip()
         return {"weekly_budget_won": custom or form.get("budget_preset", "")}

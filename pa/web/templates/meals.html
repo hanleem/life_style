@@ -3,13 +3,27 @@
 {% block body %}
 <h2>이번 주 식단</h2>
 {% if plan %}
-<p class="meta">{{ plan.week_start }}부터 한 주{% if plan.cuisine %} · {{ plan.cuisine }}{% endif %}</p>
+<p class="meta">{{ plan.week_start }}부터 한 주{% if plan.cuisine %} · {{ plan.cuisine }}{% endif %} · {{ family }}</p>
 {% if plan.source == 'rule' %}<p class="meta">AI를 쓸 수 없어 기본 가정식 메뉴로 채웠어요. 나중에 다시 만들면 맞춤 식단으로 바꿔 드려요.</p>{% endif %}
+{% if growth_badge %}
+<section class="card" id="growth-check">
+  <p><span class="chip {{ 'chip-g' if growth_badge[0] == 'ok' else 'chip-a' }}">{{ growth_badge[1] }}</span></p>
+  <details{% if growth_badge[0] != 'ok' %} open{% endif %}>
+    <summary>자세히 보기</summary>
+    <ul>{% for c in growth.checks %}<li>{{ '✓' if c.ok else '△' }} {{ c.label }}: {{ c.got }}{% if c.kind == 'max' %} (최대 {{ c.need }}){% else %}/{{ c.need }}{% endif %}</li>{% endfor %}</ul>
+    <p class="meta">식단의 균형을 보는 참고 기준이에요. 아이의 건강 상담을 대신하지 않아요.</p>
+  </details>
+</section>
+{% endif %}
 {% if plan.key_ingredients %}<p><strong>이번 주 핵심 재료</strong> {{ plan.key_ingredients | join(', ') }} <span class="meta">(모든 끼니에 쓰고 남기지 않습니다)</span></p>{% endif %}
-{% for m in plan.meals %}
+{% for day, ms in days %}
+<h3 class="sec-t">{{ day }}</h3>
+{% for m in ms %}
 <section class="card">
-  <p class="meta">{{ m.date }} · {{ '도시락' if m.slot == 'lunchbox' else '직접 요리' }}</p>
-  <p><strong>{{ m.title }}</strong>{% if m.kcal %} <span class="chip">약 {{ m.kcal }}kcal</span>{% endif %}</p>
+  <p class="meta">{{ slot_label.get(m.slot, m.slot) }}{% if m.kid_spice %} · 아이 약간 매운맛{% endif %}</p>
+  <p><strong>{{ m.title }}</strong>{% if m.kcal %} <span class="chip">어른 1인분 약 {{ m.kcal }}kcal</span>{% endif %}</p>
+  {% if m.veg_sides %}<p class="meta">채소 반찬: {{ m.veg_sides | join(', ') }}</p>{% endif %}
+  {% if m.adult_note %}<p class="meta">어른용: {{ m.adult_note }}</p>{% endif %}
   {% if m.why_new %}<p class="meta">새로운 점: {{ m.why_new }}</p>{% endif %}
   <details>
     <summary>레서피{% if m.time_min %} ({{ m.time_min }}분){% endif %}</summary>
@@ -18,20 +32,17 @@
   </details>
 </section>
 {% endfor %}
+{% endfor %}
 <section class="card">
-  <p><strong>구매 목록</strong> <span class="meta">(집에 있는 재료는 뺐습니다)</span></p>
-  <p class="meta">재료 옆 링크를 누르면 쿠팡 검색이 열립니다. 주말 요리 재료는 로켓프레시 상품을 골라 장바구니에 담으세요.</p>
+  <p><strong>구매 목록</strong> <span class="meta">(집에 있는 재료는 뺐습니다 · 주간 식비 예산 {{ '{:,}'.format(budget) }}원)</span></p>
+  {% if use_coupang %}<p class="meta">재료 옆 링크를 누르면 쿠팡 검색이 열립니다. 상품을 골라 장바구니에 담으세요.</p>{% endif %}
   {% for g in plan.shopping %}
   <p class="meta">{{ g.category }}</p>
   <ul>{% for i in g['items'] %}<li>{{ i.name }} {{ i.qty }}
-    {% if liked.get(i.name) %}<a href="{{ liked[i.name].url }}" target="_blank" rel="noopener noreferrer">👍 좋아하는 상품으로 주문{% if liked[i.name].product_name %} ({{ liked[i.name].product_name }}){% endif %}</a>
-    {% else %}<a href="https://www.coupang.com/np/search?q={{ (i.name.split(' 또는 ')[0])|urlencode }}" target="_blank" rel="noopener noreferrer">쿠팡에서 찾기</a>{% endif %}
+    {% if use_coupang %}{% if liked.get(i.name) %}<a href="{{ liked[i.name].url }}" target="_blank" rel="noopener noreferrer">👍 좋아하는 상품으로 주문{% if liked[i.name].product_name %} ({{ liked[i.name].product_name }}){% endif %}</a>
+    {% else %}<a href="https://www.coupang.com/np/search?q={{ (i.name.split(' 또는 ')[0])|urlencode }}" target="_blank" rel="noopener noreferrer">쿠팡에서 찾기</a>{% endif %}{% endif %}
     <button type="button" class="bought" data-name="{{ i.name }}" data-qty="{{ i.qty }}" data-url="{{ liked[i.name].url if liked.get(i.name) else '' }}" data-pname="{{ liked[i.name].product_name if liked.get(i.name) and liked[i.name].product_name else '' }}">샀어요</button></li>{% endfor %}</ul>
   {% endfor %}
-</section>
-<section class="card">
-  <p><strong>배달 샐러드·샌드위치</strong></p>
-  <p>{{ w.delivery_from }} 도착 · {{ w.delivery_count }}개 (토요일에 주문)</p>
 </section>
 {% else %}
 <div class="card empty"><p class="meta">아직 이번 주 식단이 없습니다. 목요일 아침에 자동으로 만들어집니다.</p></div>

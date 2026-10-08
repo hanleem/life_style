@@ -70,9 +70,10 @@ def _test_peers(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _no_profile_gate(monkeypatch):
+def _no_profile_gate(monkeypatch, tmp_path):
     """대부분의 화면 테스트는 인터뷰를 마친 뒤의 앱을 본다. 게이트 자체는 test_welcome 이 Settings(require_profile=True)로 검증한다."""
     monkeypatch.setenv("PA_REQUIRE_PROFILE", "false")
+    monkeypatch.setenv("PA_DATA_DIR", str(tmp_path / "pa-data"))   # 개발 PC 의 실제 data/ 를 읽지 않게
 
 
 @pytest.fixture(autouse=True)

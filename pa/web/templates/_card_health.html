@@ -1,0 +1,6 @@
+<a class="card now-card" id="card-health" href="/meals">
+  <div class="meta">가족 건강</div>
+  {% set h = card_data.health or {} %}
+  {% if h.badge %}<b><span class="chip {{ 'chip-g' if h.badge[0] == 'ok' else 'chip-a' }}">{{ h.badge[1] }}</span></b>
+  {% else %}<b>이번 주 식단이 나오면 성장 영양을 확인해 드려요</b>{% endif %}
+</a>

@@ -31,7 +31,7 @@ def defaults() -> dict:
     return {"honorific": "", "tone": "polite",
             "members": [{"role": "adult", "name": "", "age": 40, "sex": "f"}],
             "allergies": [], "dislikes": [], "cook_skill": "intermediate", "weekday_cook_min": 30,
-            "weekly_budget_won": 200000, "shops": ["coupang"], "interests": [],
+            "weekly_budget_won": 200000, "shops": ["coupang"], "interests": [], "weekend_lunch": False,
             "theme": "fresh", "font_size": "normal"}
 
 
@@ -69,8 +69,11 @@ def _members(rows) -> list[dict]:
             continue   # 빈 줄은 건너뛴다
         role = _choice(str(r.get("role") or "").strip(), ROLES, "가족 구성(어른·아이)")
         age = _int(r.get("age"), "나이", 0 if role == "child" else 19, 18 if role == "child" else 120)
-        out.append({"role": role, "name": str(r.get("name") or "").strip()[:10], "age": age,
-                    "sex": _choice(str(r.get("sex") or "").strip(), SEXES, "성별")})
+        row = {"role": role, "name": str(r.get("name") or "").strip()[:10], "age": age,
+               "sex": _choice(str(r.get("sex") or "").strip(), SEXES, "성별")}
+        if str(r.get("kcal") or "").strip():   # 하루 목표 열량(선택). 비우면 나이·성별 표를 쓴다
+            row["kcal"] = _int(r.get("kcal"), "하루 목표 열량", 800, 4000)
+        out.append(row)
     if not out:
         raise ProfileError("가족을 한 명 이상 적어 주세요")
     return out[:MAX_MEMBERS]
@@ -93,6 +96,7 @@ def normalize(a: dict) -> dict:
             "cook_skill": _choice(a.get("cook_skill"), SKILLS, "요리 실력"),
             "weekday_cook_min": _int(a.get("weekday_cook_min"), "평일 요리 시간", 5, 180),
             "weekly_budget_won": _int(a.get("weekly_budget_won"), "주간 식비", 0, 5_000_000),
+            "weekend_lunch": bool(a.get("weekend_lunch")),
             "shops": list(dict.fromkeys(shops)), "interests": list(dict.fromkeys(interests)),
             "theme": _choice(a.get("theme"), THEMES, "테마"),
             "font_size": _choice(a.get("font_size"), FONT_SIZES, "글씨 크기")}

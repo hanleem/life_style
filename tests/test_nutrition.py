@@ -41,7 +41,7 @@ def test_rules_read_the_owner_target_from_config():
     assert nutrition.rules(None)[0] == nutrition.DEFAULT_MEAL_KCAL
     assert nutrition.rules({"prefs": {"meal_kcal": "abc"}})[0] == nutrition.DEFAULT_MEAL_KCAL
     cfg = meals.load_config()
-    assert cfg["prefs"]["meal_kcal"] is None                                      # 기본 설정은 값을 비워 두고 기본값(600)을 쓴다
+    assert not cfg["prefs"].get("meal_kcal")                                      # 기본 설정은 값을 비워 두고 기본값(600)을 쓴다
     assert nutrition.rules(cfg)[0] == nutrition.DEFAULT_MEAL_KCAL
 
 
@@ -58,7 +58,8 @@ def test_cart_servings_come_from_grams_and_use_deducts_calorie_based_servings(co
 
 def test_prompt_carries_target_calories_and_the_meal_plan_rule(con):
     meals.ensure_schema(con)
-    txt = meals._prompt(con, meals.week_window(D), meals.load_config(), "일식")
-    assert "[칼로리" in txt and "끼니당 목표 칼로리: 약 600kcal" in txt and "100g당 대략 열량" in txt
+    from pa.core import profile
+    txt = meals._prompt(con, meals.week_window(D), meals.load_config(), "일식", profile.defaults())
+    assert "[가족" in txt and "하루 목표" in txt and "어른 1인분 = 1.0" in txt
     rule = (Path(__file__).resolve().parent.parent / "config" / "prompts" / "meal_plan.md").read_text(encoding="utf-8")
     assert "g 단위로" in rule and "다이어트" not in rule

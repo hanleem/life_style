@@ -7,7 +7,7 @@ import logging
 
 log = logging.getLogger("pa.home_cards")
 
-IMPLEMENTED = ("housekeeping", "outing")
+IMPLEMENTED = ("housekeeping", "outing", "health", "money")
 
 
 def visible(prof: dict | None) -> list[str]:
@@ -20,21 +20,32 @@ def _outing(con) -> dict:
     return {"count": n}
 
 
+def _health(con, prof) -> dict:
+    from pa.core import growth, meals
+    plan = meals.latest(con)
+    return {"badge": growth.badge(growth.evaluate(plan)) if plan else None}
+
+
+def _money(con, prof) -> dict:
+    return {"budget": (prof or {}).get("weekly_budget_won") or 0}
+
+
 def _housekeeping(con) -> dict:
     from pa.core import pantry, supplies
     wanted = [o["name"] for o in supplies.list_orders(con) if o["status"] == "wanted"]
     return {"wanted": wanted, "low": [s["name"] for s in pantry.low_staples(con)]}
 
 
-_DATA = {"outing": _outing, "housekeeping": _housekeeping}
+_DATA = {"outing": lambda con, prof: _outing(con), "housekeeping": lambda con, prof: _housekeeping(con),
+         "health": _health, "money": _money}
 
 
-def data(con, keys: list[str]) -> dict[str, dict]:
+def data(con, keys: list[str], prof: dict | None = None) -> dict[str, dict]:
     """카드별 표시 자료. 하나가 실패해도 그 카드만 빈 자료로 그린다."""
     out = {}
     for k in keys:
         try:
-            out[k] = _DATA[k](con)
+            out[k] = _DATA[k](con, prof)
         except Exception as e:  # noqa: BLE001 - 홈 화면은 어떤 카드가 실패해도 그려져야 한다
             log.warning("home card %s failed (%s)", k, type(e).__name__)
             out[k] = {}

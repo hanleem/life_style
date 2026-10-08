@@ -1,0 +1,5 @@
+<a class="card now-card" id="card-money" href="/meals">
+  <div class="meta">생활비</div>
+  {% set mo = card_data.money or {} %}
+  <b>주간 식비 예산 {{ '{:,}'.format(mo.budget or 0) }}원</b>
+</a>

@@ -171,3 +171,16 @@ def test_family_step_ignores_blank_rows_and_shows_extra_row_button(env):
     c.get("/welcome", follow_redirects=True)
     html = c.get("/welcome/family").text
     assert 'name="role_0"' in html and 'name="role_7"' in html and "한 명 더" in html
+
+
+def test_cook_step_saves_weekend_lunch_and_family_step_saves_kcal(env):
+    _, c, data_dir, _ = env
+    c.get("/welcome", follow_redirects=True)
+    answers = {**STEP_ANSWERS, "cook": {**STEP_ANSWERS["cook"], "weekend_lunch": "1"},
+               "family": {**STEP_ANSWERS["family"], "kcal_0": "1700"}}
+    for key in routes_welcome.STEP_KEYS:
+        c.post(f"/welcome/{key}", data=answers[key], follow_redirects=False)
+    p = profile.load(data_dir)
+    assert p["weekend_lunch"] is True and p["members"][0]["kcal"] == 1700 and "kcal" not in p["members"][1]
+    html = c.get("/welcome?restart=1", follow_redirects=True) and c.get("/welcome/family").text
+    assert 'name="kcal_0"' in html and 'value="1700"' in html

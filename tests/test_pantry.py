@@ -55,7 +55,8 @@ def test_prompt_block_lists_shelf_life_stock_and_liked_products(con):
 def test_meal_prompt_carries_the_shelf_life_block(con):
     meals.ensure_schema(con)
     w = meals.week_window(D)
-    txt = meals._prompt(con, w, meals.load_config(), "일식")
+    from pa.core import profile
+    txt = meals._prompt(con, w, meals.load_config(), "일식", profile.defaults())
     assert "[보관 기간" in txt and "금방 상하는 재료" in txt
 
 

@@ -87,3 +87,18 @@ def test_theme_and_font_helpers():
     assert profile.theme_attrs(None) == {"theme": "fresh", "font": "normal"}
     assert profile.theme_attrs(_answers()) == {"theme": "pastel", "font": "large"}
     assert profile.theme_attrs({"theme": "evil\"><script>"}) == {"theme": "fresh", "font": "normal"}
+
+
+def test_member_kcal_is_optional_and_validated():
+    p = profile.normalize(_answers(members=[{"role": "adult", "age": 38, "sex": "f", "kcal": "1600"},
+                                            {"role": "child", "age": 9, "sex": "m"}]))
+    assert p["members"][0]["kcal"] == 1600 and "kcal" not in p["members"][1]
+    for bad in ("100", "9000", "abc"):
+        with pytest.raises(profile.ProfileError):
+            profile.normalize(_answers(members=[{"role": "adult", "age": 38, "sex": "f", "kcal": bad}]))
+
+
+def test_weekend_lunch_flag_defaults_off():
+    assert profile.normalize(_answers())["weekend_lunch"] is False
+    assert profile.normalize(_answers(weekend_lunch=True))["weekend_lunch"] is True
+    assert profile.defaults()["weekend_lunch"] is False
