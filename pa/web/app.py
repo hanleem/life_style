@@ -11,7 +11,9 @@ from pa.scout.config import effective_config, load_scout_config
 from pa.settings import Settings
 from pa.voice.cache import AudioCache
 from pa.voice.tts import NullTts
+from pa.core import profile
 from pa.web import auth
+from pa.web.profile_gate import ProfileGate
 
 
 def create_app(settings: Settings, con, router, *, http=None, tts=None) -> FastAPI:
@@ -28,6 +30,7 @@ def create_app(settings: Settings, con, router, *, http=None, tts=None) -> FastA
     app.state.voice_cache = AudioCache(settings.data_dir / "voice_cache")
     # add_middleware 는 나중에 추가한 것이 바깥쪽. 요청 순서: ClientGuard > SecurityHeaders > HostAllowlist > CsrfGuard
     # > TailscaleGuard > Session > 라우트. 모두 pure ASGI(http+websocket).
+    app.add_middleware(ProfileGate, settings=settings)       # 가장 안쪽: 자격이 있는 요청만 여기까지 온다
     app.add_middleware(auth.TailscaleGuard, settings=settings)
     app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, max_age=7 * 24 * 3600,
                        https_only=not settings.dev_skip_tailscale, same_site="lax", session_cookie="pa_session")
@@ -43,8 +46,10 @@ def create_app(settings: Settings, con, router, *, http=None, tts=None) -> FastA
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
     app.include_router(auth.router)
     from pa.web import (routes, routes_google, routes_health, routes_meals, routes_routine, routes_scout,
-                        routes_settings, routes_tasks, routes_voice)
+                        routes_settings, routes_tasks, routes_voice, routes_welcome)
     for mod in (routes, routes_scout, routes_google, routes_routine, routes_voice, routes_meals, routes_settings,
-                routes_tasks, routes_health):
+                routes_tasks, routes_health, routes_welcome):
         app.include_router(mod.router)
+    if (prof := profile.load(settings.data_dir)):   # 재시작해도 말투·부르는 이름이 이어지게
+        routes_welcome.apply_profile_to(router, prof)
     return app

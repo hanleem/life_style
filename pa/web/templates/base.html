@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="{{ ui_theme | default('fresh') }}" data-font="{{ ui_font | default('normal') }}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
@@ -9,8 +9,8 @@
 </head>
 <body>
 {%- set tab = tab | default('') %}
-<header class="pastrip"><span>🏠 가족 비서</span><span class="pastrip-right">{% block strip_right %}{% endblock %}</span>{% if not pc_mode %}<a class="pastrip-gear" href="/settings">⚙ 설정</a>{% endif %}</header>
-{% if not pc_mode %}<nav class="tabbar" aria-label="가족 비서 탭">
+<header class="pastrip"><span>🏠 가족 비서</span><span class="pastrip-right">{% block strip_right %}{% endblock %}</span>{% if not pc_mode and not welcome_mode %}<a class="pastrip-gear" href="/settings">⚙ 설정</a>{% endif %}</header>
+{% if not pc_mode and not welcome_mode %}<nav class="tabbar" aria-label="가족 비서 탭">
 {%- for key, href, icon, label in [('home', '/', '🏠', '홈'), ('tasks', '/tasks', '📝', '할 일'), ('meals', '/meals', '🍽', '식단'), ('approvals', '/approvals', '✅', '승인'), ('life', '/routine', '🌿', '생활')] %}
   <a href="{{ href }}"{% if tab == key %} aria-current="page"{% endif %}><i aria-hidden="true">{{ icon }}</i><span>{{ label }}</span>{% if key == 'approvals' and approvals_count %}<span class="badge" aria-label="대기 {{ approvals_count }}건">{{ approvals_count }}</span>{% endif %}</a>
 {%- endfor %}

@@ -148,3 +148,25 @@ a.btn.btn-primary{display:flex}
 .full-body{position:relative;z-index:1;margin-top:var(--space-sm)}
 .full-msg{border-top:1px solid var(--line);padding-top:var(--space-sm);margin-top:var(--space-sm)}
 .full-text{overflow-wrap:anywhere}
+
+/* 첫 인터뷰·선택 카드 */
+.wizard-progress{display:block;width:100%;height:var(--space-sm);margin:0 0 var(--space-sm);border:0;border-radius:var(--radius-chip);overflow:hidden;
+  appearance:none;background:var(--chip)}
+.wizard-progress::-webkit-progress-bar{background:var(--chip)}
+.wizard-progress::-webkit-progress-value{background:var(--green)}
+.wizard-progress::-moz-progress-bar{background:var(--green)}
+.wizard-nav{display:flex;gap:var(--space-sm);align-items:center;margin-top:var(--space-lg)}
+.wizard-nav .btn-primary{flex:1;width:auto}
+.pick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-sm);margin:0 0 var(--space-md)}
+.pick{display:flex;align-items:center;gap:var(--space-sm);min-height:var(--touch);padding:var(--space-md);cursor:pointer;
+  background:var(--card);border:2px solid var(--line);border-radius:var(--radius-card)}
+.pick:has(input:checked){border-color:var(--green);background:var(--green-light)}
+.pick input{width:var(--layout-icon-line);height:var(--layout-icon-line);flex:none;accent-color:var(--green)}
+.member-row{border:1px solid var(--line)}
+.member-row[hidden]{display:none}
+.theme-card{background:var(--paper);color:var(--ink);align-items:flex-start}
+.theme-sample{display:flex;flex-direction:column;gap:var(--space-xs);flex:1}
+.theme-bar{display:block;height:var(--space-sm);border-radius:var(--radius-chip);background:var(--green)}
+.theme-btn{display:inline-block;align-self:flex-start;padding:var(--space-xs) var(--space-md);border-radius:var(--radius-button);
+  background:var(--green);color:var(--on-accent);font-size:var(--font-small);font-weight:700}
+.notice{padding:var(--space-md);border-radius:var(--radius-button);margin:0 0 var(--space-md)}

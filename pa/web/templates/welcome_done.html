@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>준비가 끝났어요 🎉</h2>
+<p>{% if honorific %}{{ honorific }}, {% endif %}이제 가족 비서를 쓰실 수 있어요.</p>
+<p class="meta">오늘 할 일, 이번 주 식단, 주말 나들이를 홈 화면에서 한눈에 볼 수 있어요. 인터뷰는 설정에서 언제든 다시 할 수 있어요.</p>
+<p><a class="btn btn-primary" href="/">홈으로 가기</a></p>
+{% endblock %}

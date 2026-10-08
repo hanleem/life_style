@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from pa.core import profile
 from pa.voice import prefs as voice_prefs
 from pa.voice import voice_copy
 
@@ -15,7 +16,13 @@ def base_context(request) -> dict:
         n = request.app.state.con.execute("SELECT COUNT(*) FROM draft WHERE status='review'").fetchone()[0]
     except Exception:  # noqa: BLE001 - 배지는 표시 전용이라 어떤 실패에도 화면을 막지 않는다
         n = 0
-    return {"approvals_count": n}
+    try:
+        prof = profile.load(request.app.state.settings.data_dir)
+    except Exception:  # noqa: BLE001 - 프로필을 못 읽어도 화면은 기본 모양으로 그려진다
+        prof = None
+    attrs = profile.theme_attrs(prof)
+    return {"approvals_count": n, "ui_theme": attrs["theme"], "ui_font": attrs["font"],
+            "honorific": (prof or {}).get("honorific", "")}
 
 
 def make_templates() -> Jinja2Templates:

@@ -1,0 +1,6 @@
+<a class="card now-card" id="card-outing" href="/outing">
+  <div class="meta">주말 나들이</div>
+  <b>아이와 갈 만한 곳 찾기</b>
+  {% if card_data.outing and card_data.outing.count %}<span class="meta">· 지난 추천 {{ card_data.outing.count }}건</span>{% endif %}
+  <span class="chip chip-g">추천받기</span>
+</a>

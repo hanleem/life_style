@@ -70,6 +70,12 @@ def _test_peers(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_profile_gate(monkeypatch):
+    """대부분의 화면 테스트는 인터뷰를 마친 뒤의 앱을 본다. 게이트 자체는 test_welcome 이 Settings(require_profile=True)로 검증한다."""
+    monkeypatch.setenv("PA_REQUIRE_PROFILE", "false")
+
+
+@pytest.fixture(autouse=True)
 def _no_dotenv(monkeypatch):
     """개발자 .env 가 테스트를 흔들지 않게."""
     from pydantic_settings import SettingsConfigDict

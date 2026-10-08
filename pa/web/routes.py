@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 from pa.clock import utcnow, utcnow_iso
-from pa.core import briefing_copy, dismiss, drafts, meals, notify, priority_sources
+from pa.core import briefing_copy, dismiss, drafts, home_cards, meals, notify, priority_sources, profile
 from pa.core.approval import approve
 from pa.core.errors import (
     Forbidden,
@@ -62,7 +62,9 @@ async def home(request: Request, _: str = Depends(require_owner)):
         except ValueError:
             sec = {}
     pending = con.execute("SELECT COUNT(*) FROM draft WHERE status='review'").fetchone()[0]
+    cards = home_cards.visible(profile.load(request.app.state.settings.data_dir))
     return templates.TemplateResponse(request, "home.html", {
+        "interest_cards": cards, "card_data": home_cards.data(con, cards),
         "sec": sec, "must": ((sec or {}).get("today_must") or [])[:3], "rest": (sec or {}).get("rest_count", 0),
         "events": (sec or {}).get("calendar") or [], "cal_note": (sec or {}).get("calendar_note"),
         "pending": pending, "copy": briefing_copy, "meal_card": meals.home_card(con),

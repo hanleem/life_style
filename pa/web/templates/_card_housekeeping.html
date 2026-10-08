@@ -1,0 +1,11 @@
+<a class="card now-card" id="card-housekeeping" href="/routine">
+  <div class="meta">집안일·생필품</div>
+  {% set hk = card_data.housekeeping or {} %}
+  {% if hk.wanted or hk.low %}
+    <b>챙길 것이 있어요</b>
+    {% if hk.wanted %}<div class="meta">주문 대기: {{ hk.wanted | join(', ') }}</div>{% endif %}
+    {% if hk.low %}<div class="meta">거의 떨어짐: {{ hk.low | join(', ') }}</div>{% endif %}
+  {% else %}
+    <b>정기배송·생필품 보기</b>
+  {% endif %}
+</a>

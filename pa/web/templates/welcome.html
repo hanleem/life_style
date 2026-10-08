@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set welcome_mode = true %}
+{% block strip_right %}{{ n }} / {{ total }}{% endblock %}
+{% block body %}
+<progress class="wizard-progress" max="{{ total }}" value="{{ n }}" aria-label="진행"></progress>
+<p class="meta">{{ n }} / {{ total }}</p>
+<h2>{{ title }}</h2>
+<p class="meta">{{ help }}</p>
+{% if error %}<p class="notice notice-danger" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/welcome/{{ step }}" class="wizard">
+
+{% if step == 'honorific' %}
+  <label class="field">부를 이름
+    <input class="field-full" type="text" name="honorific" value="{{ d.get('honorific', '') }}" maxlength="20" autocomplete="off" placeholder="예: 하늘님" autofocus>
+  </label>
+
+{% elif step == 'tone' %}
+  <div class="pick-grid">
+  {% for k, label in p.TONES.items() %}
+    <label class="pick"><input type="radio" name="tone" value="{{ k }}" {% if d.get('tone', 'polite') == k %}checked{% endif %}>
+      <span><strong>{{ label }}</strong><br><span class="meta">{% if k == 'friendly' %}"오늘은 이걸 해 볼까요?"{% else %}"오늘은 이것을 해 보시겠어요?"{% endif %}</span></span></label>
+  {% endfor %}
+  </div>
+
+{% elif step == 'family' %}
+  <div id="members">
+  {% for m in members %}
+    <fieldset class="member-row card" data-row="{{ loop.index0 }}">
+      <legend class="meta">{{ loop.index }}번째 가족</legend>
+      <label class="field">구분
+        <select name="role_{{ loop.index0 }}">
+          <option value="">(비워 두기)</option>
+          {% for k, label in p.ROLES.items() %}<option value="{{ k }}" {% if m.get('role') == k %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></label>
+      <label class="field">이름(선택)
+        <input type="text" name="name_{{ loop.index0 }}" value="{{ m.get('name', '') }}" maxlength="10" autocomplete="off"></label>
+      <label class="field">나이
+        <input class="input-num" type="number" inputmode="numeric" min="0" max="120" name="age_{{ loop.index0 }}" value="{{ m.get('age', '') }}"> 살</label>
+      <label class="field">성별
+        <select name="sex_{{ loop.index0 }}">
+          <option value="">(고르기)</option>
+          {% for k, label in p.SEXES.items() %}<option value="{{ k }}" {% if m.get('sex') == k %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></label>
+    </fieldset>
+  {% endfor %}
+  </div>
+  <button type="button" id="add-member" hidden>＋ 한 명 더</button>
+  <script>
+  (function(){
+    var rows=[].slice.call(document.querySelectorAll('.member-row')), shown={{ member_count }}, btn=document.getElementById('add-member');
+    function sync(){rows.forEach(function(r,i){r.hidden=i>=shown});btn.hidden=shown>=rows.length}
+    btn.onclick=function(){shown++;sync()};sync();
+  })();
+  </script>
+
+{% elif step == 'food' %}
+  <label class="field">알레르기
+    <input class="field-full" type="text" name="allergies" value="{{ (d.get('allergies') or []) | join(', ') }}" placeholder="예: 땅콩, 새우" autocomplete="off"></label>
+  <label class="field">싫어하는 음식
+    <input class="field-full" type="text" name="dislikes" value="{{ (d.get('dislikes') or []) | join(', ') }}" placeholder="예: 가지, 오이" autocomplete="off"></label>
+
+{% elif step == 'cook' %}
+  <p class="sec-t">요리 실력</p>
+  <div class="pick-grid">
+  {% for k, label in p.SKILLS.items() %}
+    <label class="pick"><input type="radio" name="cook_skill" value="{{ k }}" {% if d.get('cook_skill', 'intermediate') == k %}checked{% endif %}><span><strong>{{ label }}</strong></span></label>
+  {% endfor %}
+  </div>
+  <p class="sec-t">평일 저녁 요리에 쓸 수 있는 시간</p>
+  <div class="pick-grid">
+  {% for m in p.COOK_MINUTES %}
+    <label class="pick"><input type="radio" name="weekday_cook_min" value="{{ m }}" {% if d.get('weekday_cook_min', 30) == m %}checked{% endif %}><span><strong>{{ m }}분</strong></span></label>
+  {% endfor %}
+  </div>
+
+{% elif step == 'budget' %}
+  <div class="pick-grid">
+  {% for won in presets %}
+    <label class="pick"><input type="radio" name="budget_preset" value="{{ won }}" {% if d.get('weekly_budget_won', 200000) == won %}checked{% endif %}><span><strong>{{ '{:,}'.format(won) }}원</strong></span></label>
+  {% endfor %}
+  </div>
+  <label class="field">직접 적기(원)
+    <input class="field-full" type="text" inputmode="numeric" name="budget_custom" value="{% if d.get('weekly_budget_won') and d.get('weekly_budget_won') not in presets %}{{ d.get('weekly_budget_won') }}{% endif %}" placeholder="예: 250000" autocomplete="off"></label>
+
+{% elif step == 'shops' %}
+  <div class="pick-grid">
+  {% for k, label in p.SHOPS.items() %}
+    <label class="pick"><input type="checkbox" name="shops" value="{{ k }}" {% if k in (d.get('shops') or ['coupang']) %}checked{% endif %}><span><strong>{{ label }}</strong></span></label>
+  {% endfor %}
+  </div>
+
+{% elif step == 'interests' %}
+  <div class="pick-grid">
+  {% for k, label in p.INTERESTS.items() %}
+    <label class="pick"><input type="checkbox" name="interests" value="{{ k }}" {% if k in (d.get('interests') or []) %}checked{% endif %}><span><strong>{{ label }}</strong></span></label>
+  {% endfor %}
+  </div>
+
+{% elif step == 'look' %}
+  <p class="sec-t">모양</p>
+  <div class="pick-grid theme-grid">
+  {% for k, label in p.THEMES.items() %}
+    <label class="pick theme-card" data-theme="{{ k }}"><input type="radio" name="theme" value="{{ k }}" {% if d.get('theme', 'fresh') == k %}checked{% endif %}>
+      <span class="theme-sample"><strong>{{ label }}</strong><span class="theme-bar"></span><span class="theme-btn">오늘 저녁</span></span></label>
+  {% endfor %}
+  </div>
+  <p class="sec-t">글씨 크기</p>
+  <div class="pick-grid">
+  {% for k, label in p.FONT_SIZES.items() %}
+    <label class="pick"><input type="radio" name="font_size" value="{{ k }}" {% if d.get('font_size', 'normal') == k %}checked{% endif %}><span><strong>{{ label }}</strong></span></label>
+  {% endfor %}
+  </div>
+  <script>
+  document.querySelectorAll('input[name=theme]').forEach(function(i){i.addEventListener('change',function(){document.documentElement.dataset.theme=i.value})});
+  document.querySelectorAll('input[name=font_size]').forEach(function(i){i.addEventListener('change',function(){document.documentElement.dataset.font=i.value})});
+  </script>
+{% endif %}
+
+  <div class="wizard-nav">
+    {% if prev %}<a class="btn" href="{{ prev }}">← 이전</a>{% endif %}
+    <button class="btn-primary" type="submit">{% if last %}끝내기{% else %}다음{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

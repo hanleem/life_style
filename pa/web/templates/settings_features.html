@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}설정{% endblock %}
+{% block body %}
+<h2>보이는 기능</h2>
+<p class="meta">고른 기능의 카드를 홈 화면 위쪽에 보여 드려요. 안 고른 기능은 숨겨요.</p>
+<form method="post" action="/settings/features">
+  <div class="pick-grid">
+  {% for k, label in interests.items() %}
+    <label class="pick"><input type="checkbox" name="interests" value="{{ k }}" {% if k in chosen %}checked{% endif %}>
+      <span><strong>{{ label }}</strong>{% if k not in ready %}<br><span class="meta">곧 준비돼요</span>{% endif %}</span></label>
+  {% endfor %}
+  </div>
+  <button class="btn-primary" type="submit">저장</button>
+</form>
+<p><a class="btn" href="/settings">← 설정으로</a></p>
+{% endblock %}

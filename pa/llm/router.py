@@ -41,10 +41,11 @@ class TaskRouter:
     def __init__(self, con, ai, budget, prompts_dir: Path):
         self.con, self.ai, self.budget, self.prompts_dir = con, ai, budget, prompts_dir
         self.tone: str = "polite"   # 프롬프트의 {tone} 자리에 들어갈 말투(인터뷰에서 정한다)
+        self.honorific: str = ""    # 프롬프트의 {honorific} 자리(비우면 "사용자")
 
     def _cache_key(self, task: str, user_text: str, schema: dict | None = None) -> str:
         sch = json.dumps(schema, sort_keys=True, ensure_ascii=False) if schema else ""   # 스키마가 바뀌면 캐시도 새로
-        return hashlib.sha256(f"{task}|{user_text}|{sch}|{self.tone}".encode()).hexdigest()
+        return hashlib.sha256(f"{task}|{user_text}|{sch}|{self.tone}|{self.honorific}".encode()).hexdigest()
 
     def _cache_get(self, key: str) -> dict | None:
         row = self.con.execute("SELECT result_json FROM llm_cache WHERE key=? AND expires_at>?",
@@ -61,7 +62,8 @@ class TaskRouter:
         f = self.prompts_dir / f"{system_name}.md"
         if not f.exists():
             return ""
-        return f.read_text(encoding="utf-8").replace("{tone}", TONES.get(self.tone, TONES["polite"]))
+        text = f.read_text(encoding="utf-8")
+        return text.replace("{tone}", TONES.get(self.tone, TONES["polite"])).replace("{honorific}", self.honorific or "사용자")
 
     async def run(self, task: str, system_name: str, user_text: str, schema: dict, *,
                   user_initiated: bool = False, fallback=None, images=()) -> LLMResult:
