@@ -1,0 +1,25 @@
+.env
+data/
+secrets/
+.venv/
+__pycache__/
+.superpowers/
+client_secret*.json
+token*.json
+
+# design token source must be tracked
+!design/tokens.json
+!tests/data/
+
+# backups (encrypted .pabk, plaintext work files, restore leftovers)
+*.pabk
+backups/
+.backup-work/
+pre-restore-*/
+*.restore-tmp
+
+# one-off scratch scripts from stage 1 (never commit)
+tools_tmp/
+.pytest_cache/
+.claude/
+.ruff_cache/

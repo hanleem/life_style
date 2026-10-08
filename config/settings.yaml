@@ -1,0 +1,18 @@
+timezone: Asia/Seoul
+work_start: "07:00"
+protected_until: "07:30"           # 이 시각 전에는 알림을 보류한다
+work_end:                          # 요일별 하루 마감 = 방해 금지 시작
+  mon: "21:30"
+  tue: "21:30"
+  wed: "21:30"
+  thu: "21:30"
+  fri: "21:30"
+  sat: "21:30"
+  sun: "21:30"
+rest_days: []
+briefing:
+  days: [mon, tue, wed, thu, fri, sat, sun]
+  morning: "07:30"
+  evening_before_end_min: 60       # 저녁 브리핑은 마감 1시간 전
+  friday: "17:00"                  # 금요일 주간 정리
+max_today_must: 3

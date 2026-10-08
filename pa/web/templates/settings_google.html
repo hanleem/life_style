@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block body %}
+<h2>Google 캘린더 연결</h2>
+{% if problem %}<div class="card notice-danger" role="status">{{ problem }}</div>{% endif %}
+<div class="card">
+  <strong>캘린더: {{ '연결됨' if connected else '연결 안 됨' }}</strong>
+  {% if labels %}<p class="meta">허용된 권한: {{ labels | join(' · ') }}</p>{% endif %}
+  {% if not problem %}
+  <div class="actions">
+    <a class="btn btn-primary" href="/auth/google/start?level=base">{{ '다시 연결' if connected else '캘린더 연결' }}</a>
+    <a class="btn btn-primary" href="/auth/google/start?level=calwrite">캘린더 쓰기 켜기</a>
+  </div>
+  {% endif %}
+</div>
+<p class="meta">이 버튼은 이 PC의 브라우저에서 눌러 주세요 (연결 완료 화면이 이 PC로만 돌아옵니다). 일정 쓰기는 승인한 뒤에만 실행됩니다.</p>
+{% if cal_write %}
+<form method="post" action="/settings/google/calendar-write" class="card">
+  <strong>쓰기 허용 캘린더</strong>
+  {% for cid in write_ids if cid != 'primary' %}
+  <label class="check-row"><input type="checkbox" name="ids" value="{{ cid }}" checked> {{ cid }}</label>
+  {% endfor %}
+  <label class="check-row"><input type="checkbox" name="ids" value="primary" {{ 'checked' if 'primary' in write_ids }}> primary (기본 캘린더)</label>
+  <button class="btn-primary" type="submit">저장</button>
+</form>
+{% endif %}
+{% endblock %}

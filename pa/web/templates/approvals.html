@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set tab = 'approvals' %}
+{% block strip_right %}승인 대기{% endblock %}
+{% block body %}
+<h2>승인 대기</h2>
+{% set status_ko = {'review': '검토 중', 'held': '보류', 'queued': '실행 대기', 'unknown': '확인 필요', 'failed': '실패'} %}
+{% if not items %}<div class="card empty"><p class="meta">대기 중인 항목이 없습니다.</p></div>{% endif %}
+{% for d in items %}
+<div class="card" id="d-{{ d.id }}">
+  <div class="meta">{{ d.channel_name }} · v{{ d.version }} · {{ status_ko.get(d.status, d.status) }}</div>
+  <pre class="draft-body">{{ d.body }}</pre>
+  {% if d.status == 'review' %}
+  <button class="btn-primary" onclick="approveDraft('{{ d.id }}', {{ d.version }}, '{{ d.hash }}')">✅ 승인하고 캘린더에 추가</button>
+  {% endif %}
+  {% if d.status in ('review', 'held') %}<button class="btn-block" onclick="discardDraft('{{ d.id }}')">🗑 보류 (이 항목 삭제)</button>{% endif %}
+</div>
+{% endfor %}
+{% if items %}<p class="meta">승인한 뒤에만 실행됩니다.</p>{% endif %}
+{% include "_js.html" %}
+<script>
+async function approveDraft(id, version, hash){
+  const {nonce}=await post('/api/nonce');
+  if(!await biometric(nonce)){toast('인증이 취소되었습니다');return}
+  try{await post(`/api/drafts/${id}/approve`,{version,hash,nonce},true)}
+  catch(e){toast(e.detail||'실패했습니다');return}
+  toast('실행 대기열에 넣었습니다');setTimeout(()=>location.reload(),1200)}
+async function discardDraft(id){
+  if(!confirm('이 항목을 삭제할까요? 되돌릴 수 없습니다.'))return;
+  try{
+    await post(`/api/drafts/${id}/discard`,{},true);
+    const card=document.getElementById('d-'+id);if(card)card.remove();
+    toast('삭제했습니다');
+  }catch(e){toast(e.detail||'삭제하지 못했습니다. 다시 시도해 주세요')}}
+</script>
+{% endblock %}

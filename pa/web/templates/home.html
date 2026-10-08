@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set tab = 'home' %}
+{% block body %}
+<h2>오늘</h2>
+{% if notices %}<section class="card">
+  <div class="meta">알림</div>
+  {% for n in notices %}<p>{% if n.href %}<a href="{{ n.href }}">{{ n.title }}</a>{% else %}{{ n.title }}{% endif %}</p>{% endfor %}
+</section>
+{% endif %}
+{% include "_home_meals.html" %}
+{% if task_candidates %}<a class="card now-card" href="/tasks"><div class="meta">확인할 할 일 후보</div><b>후보 {{ task_candidates }}건</b> <span class="chip chip-a">확인하기</span></a>
+{% endif %}
+{% if approvals_count %}<a class="card now-card" href="/approvals"><div class="meta">지금 할 것</div><b>승인 대기 {{ approvals_count }}건</b> <span class="chip chip-a">확인하기</span></a>
+{% endif %}
+{% if sec is none %}
+<div class="card empty"><p class="meta">아침 브리핑 전입니다</p></div>
+{% else %}
+<div class="card card-link">
+  <a class="stretch meta" href="/today">오늘 꼭 할 일 · 자세히 ›</a>
+  {% if must %}<ol class="must">{% for t in must %}<li class="swipe" data-swipe-key="{{ t.id }}">{{ t.text }}{% for r in (t.reasons or [])[:1] %} <span class="chip chip-a">{{ r }}</span>{% endfor %}</li>{% endfor %}</ol>{% else %}<div class="meta">없음</div>{% endif %}
+  {% if rest %}<div class="meta">그 외 {{ rest }}건</div>{% endif %}
+</div>
+{% endif %}
+{% include "_voice_home.html" %}
+{% include "_js.html" %}
+{% include "_swipe.html" %}
+<div class="card">
+  <div class="meta">결정·승인 대기</div>
+  <a href="/approvals"><b>승인 대기 {{ pending }}건</b></a>{% if pending %} <span class="chip chip-a">승인 필요</span>{% endif %}
+</div>
+{% if sec is not none %}
+<div class="card">
+  <div class="meta">오늘 일정</div>
+  {% if cal_note %}<div class="meta">{{ cal_note }}</div>{% endif %}
+  {% for e in events %}<div>{{ e.time or '종일' }} {{ e.title }}</div>{% else %}{% if not cal_note %}<div class="meta">일정 없음</div>{% endif %}{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

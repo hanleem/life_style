@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block body %}
+<h2>루틴</h2>
+<a class="card now-card" href="/meals"><strong>이번 주 식단·구매 목록·레서피</strong></a>
+
+{% for it in items %}
+<section class="card supply" data-item="{{ it.id }}">
+  <p><strong>{{ it.label }}</strong></p>
+  <p>{{ copy.REMAINING_LABEL }} <span class="rem">{{ it.remaining }}</span>끼</p>
+  {% if it.paused_until %}<p class="meta">~ {{ it.paused_until }}</p>{% endif %}
+  {% if it.due %}<p class="meta">{{ copy.SUPPLY_BRIEF_DUE }}{% if it.hint %} · {{ it.hint }}{% endif %}</p>{% endif %}
+  {% if it.stale %}
+  <p class="meta">{{ copy.STOCK_CHECK }}</p>
+  <button type="button" data-act="stale-ack">{{ copy.SKIP_LABEL }}</button>
+  {% endif %}
+  <div>
+    <input type="number" class="qty" min="1" max="60" value="{{ it.default_qty }}" aria-label="끼니 수">
+    <button type="button" class="btn-primary" data-act="delivered">도착했어요</button>
+  </div>
+  <div>
+    <button type="button" data-act="skipped">오늘은 안 먹었어요</button>
+    <button type="button" data-act="adjust">남은 끼니 고치기</button>
+  </div>
+  <div>
+    {% if it.order_url %}<a class="btn" href="{{ it.order_url }}" target="_blank" rel="noopener noreferrer">주문하러 가기</a>{% endif %}
+    <button type="button" data-act="ordered">주문했어요</button>
+    <button type="button" data-act="snooze">나중에</button>
+  </div>
+  <div class="askcutoff" hidden>
+    <p class="meta">{{ copy.CUTOFF_QUESTION }}</p>
+    <input type="time" class="cutoff-time" aria-label="마감 시각">
+    <button type="button" class="btn-primary" data-act="cutoff-save">저장</button>
+    <button type="button" data-act="cutoff-skip">{{ copy.SKIP_LABEL }}</button>
+  </div>
+  {% for p in it.proposals %}
+  <div class="proposal" data-pid="{{ p.id }}" data-editable="1">
+    <p class="meta">{{ p.basis }}</p>
+    <button type="button" class="btn-primary" data-act="accepted">{{ copy.PROPOSAL_ACTIONS[0] }}</button>
+    <button type="button" data-act="edited">{{ copy.PROPOSAL_ACTIONS[1] }}</button>
+    <button type="button" data-act="passed">{{ copy.PROPOSAL_ACTIONS[2] }}</button>
+  </div>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card"><p class="meta">{{ copy.DASH_SUPPLY_NONE }}</p></section>
+{% endfor %}
+
+{% if rotation %}
+<section class="card" id="rotation">
+  <p>{{ rotation.prompt }}</p>
+  {% for c in rotation.candidates %}
+  <p>{% if https(c.url) %}<a href="{{ c.url }}" target="_blank" rel="noopener noreferrer">{{ c.label }}</a>{% else %}{{ c.label }}{% endif %}{% if c.notes %} <span class="meta">{{ c.notes }}</span>{% endif %}</p>
+  {% else %}
+  <p><a class="btn" href="/routine/settings#rotation">설정</a></p>
+  {% endfor %}
+  <button type="button" data-act="rotation-dismiss">{{ copy.SKIP_LABEL }}</button>
+</section>
+{% endif %}
+
+<p class="meta"><a href="/routine/settings">설정</a></p>
+
+{% include "_js.html" %}
+<script>
+(function(){
+  async function run(fn){try{await fn()}catch(e){}}
+  document.querySelectorAll('.proposal').forEach(function(box){
+    box.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click',function(){run(async function(){
+        var body={response:b.dataset.act};
+        if(b.dataset.act==='edited'){var v=parseInt(prompt('값'),10);if(isNaN(v))return;body.value=v}
+        await post('/api/proposal/'+box.dataset.pid,body);location.reload()})})})});
+  document.querySelectorAll('.supply').forEach(function(card){
+    var id=card.dataset.item,base='/api/supply/'+id+'/';
+    function act(name,fn){var b=card.querySelector('[data-act="'+name+'"]');if(b)b.addEventListener('click',function(){run(fn)})}
+    act('delivered',async function(){await post(base+'delivered',{qty:parseInt(card.querySelector('.qty').value,10)});location.reload()});
+    act('skipped',async function(){await post(base+'skipped',{});location.reload()});
+    act('adjust',async function(){var v=parseInt(prompt('남은 끼니'),10);if(isNaN(v))return;
+      await post(base+'adjust',{remaining:v});location.reload()});
+    act('snooze',async function(){await post(base+'snooze');toast('저장했습니다')});
+    act('stale-ack',async function(){await post(base+'stale-ack');location.reload()});
+    act('ordered',async function(){var r=await post(base+'ordered');
+      if(r.ask_cutoff){card.querySelector('.askcutoff').hidden=false}else{toast('저장했습니다')}});
+    act('cutoff-save',async function(){var t=card.querySelector('.cutoff-time').value;
+      await post(base+'cutoff',{cutoff:t||null});card.querySelector('.askcutoff').hidden=true;toast('저장했습니다')});
+    act('cutoff-skip',async function(){await post(base+'cutoff',{cutoff:null});card.querySelector('.askcutoff').hidden=true});
+  });
+  var rd=document.querySelector('[data-act="rotation-dismiss"]');
+  if(rd)rd.addEventListener('click',function(){run(async function(){await post('/api/rotation/dismiss');location.reload()})});
+})();
+</script>
+{% endblock %}
+

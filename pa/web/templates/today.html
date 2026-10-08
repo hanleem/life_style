@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set tab = 'home' %}
+{% block body %}
+<h2>오늘 자세히</h2>
+{% if sec is none %}
+<div class="card empty"><p class="meta">오늘 브리핑이 아직 없습니다.</p></div>
+{% else %}
+<section class="card">
+  <p><strong>오늘 꼭 할 일</strong></p>
+  {% for t in sec.today_must or [] %}
+  <div class="row swipe" data-swipe-key="{{ t.id }}">
+    <p>{{ t.text }}</p>
+    <p class="meta">{{ labels.get(t.source, t.source) }}{% if t.date %} · {{ t.date }}{% endif %}</p>
+    {% for r in t.reasons or [] %}<span class="chip chip-a">{{ r }}</span> {% endfor %}
+  </div>
+  {% else %}<p class="meta">없습니다.</p>{% endfor %}
+</section>
+{% if sec.rest_items or sec.rest_count %}
+<section class="card">
+  <p><strong>그 외 {{ sec.rest_count }}건</strong></p>
+  {% for t in sec.rest_items or [] %}
+  <div class="row swipe" data-swipe-key="{{ t.id }}"><p>{{ t.text }}</p><p class="meta">{{ labels.get(t.source, t.source) }}{% if t.date %} · {{ t.date }}{% endif %}{% for r in t.reasons or [] %} · {{ r }}{% endfor %}</p></div>
+  {% endfor %}
+  {% if sec.rest_count and (sec.rest_items or [])|length < sec.rest_count %}<p class="meta">앞의 {{ (sec.rest_items or [])|length }}건만 보여 드립니다.</p>{% endif %}
+</section>
+{% endif %}
+<section class="card">
+  <p><strong>오늘 일정</strong></p>
+  {% if sec.calendar_note %}<p class="meta">{{ sec.calendar_note }}</p>{% endif %}
+  {% for e in sec.calendar or [] %}<p>{% if e.time %}{{ e.time }} {% endif %}{{ e.title }}</p>{% else %}{% if not sec.calendar_note %}<p class="meta">일정이 없습니다.</p>{% endif %}{% endfor %}
+</section>
+<a class="card now-card" href="/approvals"><strong>승인 대기 {{ sec.approvals or 0 }}건</strong> <span class="chip chip-a">확인하기</span></a>
+{% endif %}
+{% if hidden %}
+<section class="card">
+  <p><strong>읽음 처리한 항목</strong> <span class="meta">(되돌리면 다시 나옵니다)</span></p>
+  {% for h in hidden %}<div class="row"><p>{{ h.label }}</p><button type="button" data-undo-key="{{ h.key }}">되돌리기</button></div>{% endfor %}
+</section>
+{% endif %}
+<p class="meta">상자를 옆으로 밀면 읽음 처리되어 오늘 할 일에서 사라집니다.</p>
+{% include "_swipe.html" %}
+<a class="btn" href="/">← 홈으로</a>
+{% endblock %}

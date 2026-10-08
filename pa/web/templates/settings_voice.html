@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>{{ copy.title }}</h2>
+<form id="vf" class="card">
+  <label><input type="checkbox" name="enabled"{% if s.enabled %} checked{% endif %}> {{ copy.enabled }}</label>
+  <div class="meta">{{ local_only }}. 현재 엔진: {{ engine_name }}</div>
+  <p><label>{{ copy.engine }}
+    <select name="engine">{% for e in engines %}<option value="{{ e }}"{% if s.engine == e %} selected{% endif %}>{{ copy['engine_' ~ e] }}</option>{% endfor %}</select></label></p>
+  <p><label>{{ copy.rate }}
+    <select name="rate">{% for r in rates %}<option value="{{ r }}"{% if s.rate == r %} selected{% endif %}>{{ r }}</option>{% endfor %}</select></label></p>
+  {% for k in switches %}
+  <p><label><input type="checkbox" name="{{ k }}"{% if s[k] %} checked{% endif %}> {{ copy[k] }}</label>
+    <span class="meta">{{ copy['why_' ~ k] }}</span>
+    {% if k in warn_on %}<span class="meta text-danger">{{ warning }}</span>{% endif %}</p>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">{{ copy.save }}</button>
+</form>
+<p><a href="/">{{ copy.back }}</a></p>
+{% include "_js.html" %}
+<script>
+const NAMES={{ (['enabled','engine','rate'] + switches|list)|tojson }};
+document.getElementById('vf').addEventListener('submit',async ev=>{ev.preventDefault();const f=ev.target;const body={};
+  for(const n of NAMES){const e=f.elements[n];body[n]=e.type==='checkbox'?e.checked:(n==='rate'?parseFloat(e.value):e.value)}
+  try{await put('/api/voice/settings',body);toast({{ copy.saved|tojson }})}catch(e){}});
+</script>
+{% endblock %}

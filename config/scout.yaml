@@ -1,0 +1,11 @@
+# 아이와 함께하는 주말 나들이 추천 설정. 출발 지역은 첫 인터뷰(Stage 3)에서 채운다.
+outing:
+  from_region: null            # 동 단위까지만(예: "OO시 OO구 OO동"). 비워 두면 추천이 꺼진다
+  best_oneway_min: [30, 60]
+  max_oneway_min: 60
+  extended_oneway_min: 120
+  extend_low_days: 3
+  extend_rest_streak: 3
+  budget: null
+  companions: null             # 예: 아이 동반
+taste_seeds: []

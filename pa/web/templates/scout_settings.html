@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block body %}
+<h2>나들이 추천 설정</h2>
+<form class="card" id="scout-form" onsubmit="return false">
+  <label>출발 지역 (동 단위까지) <input name="from_region" maxlength="40" value="{{ from_region }}"></label>
+  <label>편도 최적 시간(분) <input name="lo" type="number" min="1" max="600" value="{{ best_lo }}"> ~ <input name="hi" type="number" min="1" max="600" value="{{ best_hi }}"></label>
+  <label>편도 최대 시간(분) <input name="max" type="number" min="10" max="600" value="{{ max_oneway }}"></label>
+  <label>연휴·방학 날짜 (쉼표로 구분, YYYY-MM-DD) <input name="vac" value="{{ vacation }}"></label>
+  <button type="button" class="btn-primary" id="scout-save">저장</button>
+</form>
+{% include "_js.html" %}
+<script>
+document.getElementById('scout-save').onclick=async()=>{
+  const f=document.getElementById('scout-form').elements;
+  try{await post('/settings/scout',{from_region:f.from_region.value,best_oneway_min:[parseInt(f.lo.value,10),parseInt(f.hi.value,10)],
+    max_oneway_min:parseInt(f.max.value,10),vacation_dates:f.vac.value.split(',')});toast('저장했습니다')}catch(e){}};
+</script>
+{% endblock %}

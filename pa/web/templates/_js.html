@@ -1,0 +1,18 @@
+<script>
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+async function post(url, body, quiet){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(String(r.status));e.status=r.status;e.detail=j.detail;e.body=j;if(!quiet)toast(j.detail||'실패했습니다');throw e}return j}
+async function put(url, body){const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  const j=await r.json().catch(()=>({}));if(!r.ok){toast(j.detail||'실패했습니다');throw new Error(r.status)}return j}
+const pending={};
+window.paBiometricResult=function(nonce, ok){const cb=pending[nonce];delete pending[nonce];if(cb)cb(ok)};
+function biometric(nonce){return new Promise(res=>{
+  if(window.PABridge){pending[nonce]=res;PABridge.postMessage(JSON.stringify({op:'biometric',nonce}))}
+  else res(confirm('확인 후 진행합니다. 진행할까요?'))})}
+async function confirmDelete(url){
+  const {nonce}=await post('/api/nonce');
+  if(!await biometric(nonce)){toast('인증이 취소되었습니다');return false}
+  await post(url,{nonce});return true}
+async function call(method, url, body){const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok){toast(typeof j.detail==='string'?j.detail:'실패했습니다');throw new Error(r.status)}return j}
+</script>

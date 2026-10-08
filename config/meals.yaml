@@ -1,0 +1,22 @@
+# 주간 식단·구매 목록·레서피 설정(가족용 기본 틀). 아래 값은 자리표시자이며,
+# 첫 인터뷰(Stage 3)에서 받은 값으로 채워진다. 지금은 일반적인 가정식 기본값으로 동작한다.
+schedule:
+  plan: {day: thu, time: "09:30"}              # 식단 생성 + 알림
+  cart_login: {day: thu, time: "10:00"}        # 식단 알림 뒤: 쿠팡 로그인 요청(장바구니 담기는 승인 후 실행)
+  grocery_reminder: {day: fri, time: "09:30"}
+  delivery_reminder: {day: sat, time: "09:00"}
+prefs:
+  meals: 끼니 구성은 인터뷰에서 정한다            # TODO(Stage 3/4): 아침·저녁·아이 간식
+  cuisine_base: 가정식 한식                       # 기본 요리 종류
+  cuisine_variety: []                            # 변화 주에 돌려 쓸 요리 종류(인터뷰에서 채움)
+  variety_weeks_of_month: []                     # 변화 주로 할 주차(예: [2, 4])
+  style: 채소가 충분하고 가격 효율이 좋은 가정식
+  avoid: []                                      # 알레르기·싫어하는 음식(인터뷰에서 채움)
+  tools: 일반 가정용 조리도구
+  cook_time: 평일 요리 시간은 인터뷰에서 정한다   # TODO(Stage 3)
+  meal_kcal: null                                # 한 끼 목표 칼로리: 가족 구성원별로 Stage 4에서 계산
+  calorie_shares: {protein: 0.35, carb: 0.45, fat: 0.10}
+  batch: 한 번에 많이 만들어 소분·냉동해 두고 차차 먹어도 됨
+  cook_days: [sat, sun]                          # 직접 만드는 날(인터뷰에서 바꿈)
+  delivery: 필요하면 배달·밀키트로 대체
+pantry: []                                       # 집에 있는 재료: 구매 목록에서 뺀다

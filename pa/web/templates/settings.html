@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}설정{% endblock %}
+{% block body %}
+<h2>설정</h2>
+<section class="card">
+  <p><strong>연결·설정</strong></p>
+  <p><a class="btn" href="/settings/google">Google 캘린더 연결</a></p>
+  <p><a class="btn" href="/settings/voice">음성 브리핑</a></p>
+  <p><a class="btn" href="/routine/settings">루틴·정기배송</a></p>
+  <p><a class="btn" href="/settings/taste">취향</a></p>
+  <p><a class="btn" href="/settings/health">상태 점검</a></p>
+</section>
+{% endblock %}

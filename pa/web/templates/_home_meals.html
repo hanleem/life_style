@@ -1,0 +1,22 @@
+{% if meal_card %}
+<div class="card" id="home-meals">
+  <a class="meta" href="/meals">이번 주 식단·장보기 · 자세히 ›</a>
+  {% if meal_card.plan %}
+  <p><strong>식단</strong>{% if meal_card.week_start %} <span class="meta">{{ meal_card.week_start }}부터</span>{% endif %}
+    {% if meal_card.key %} · 핵심 재료 {{ meal_card.key | join(', ') }}{% endif %}</p>
+  <ul>{% for m in meal_card.meals %}<li>{{ m.date }} {{ m.title }}{% if m.kcal %} <span class="meta">약 {{ m.kcal }}kcal</span>{% endif %}</li>{% endfor %}</ul>
+  {% else %}<p class="meta">이번 주 식단이 아직 없습니다.</p>{% endif %}
+  <p><strong>장보기</strong>
+  {% if meal_card.cart %}
+    · 쿠팡 장바구니에 {{ meal_card.cart | length }}개 담음 <span class="meta">(결제 전)</span></p>
+    <p class="meta">{{ meal_card.cart | map(attribute='name') | join(', ') }}</p>
+    <a class="btn btn-primary" href="{{ meal_card.cart_url }}" target="_blank" rel="noopener noreferrer">쿠팡 장바구니 열기</a>
+  {% else %}
+    · 담아 둔 상품이 없습니다</p>
+  {% endif %}
+  {% if meal_card.supplies_wait or meal_card.supplies_cart %}
+  <p class="meta">생필품{% if meal_card.supplies_wait %} 주문 대기: {{ meal_card.supplies_wait | join(', ') }}{% endif %}{% if meal_card.supplies_cart %} · 장바구니: {{ meal_card.supplies_cart | join(', ') }}{% endif %}</p>
+  {% endif %}
+  {% for s in meal_card.low %}<p><span class="chip chip-a">주문 필요</span> {{ s.name }} {{ '%g' % s.count }}{{ s.unit }} 남음</p>{% endfor %}
+</div>
+{% endif %}

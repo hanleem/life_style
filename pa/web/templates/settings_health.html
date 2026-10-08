@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}상태 점검{% endblock %}
+{% block body %}
+<h2>상태 점검</h2>
+<section class="card" id="backup">
+  <p><strong>백업</strong></p>
+  <p>{{ backup.line }}</p>
+  {% if backup.check %}<p class="notice-danger" role="status">{{ backup.check }}{% if backup.reason %} · {{ backup.reason }}{% endif %}</p>{% endif %}
+  {% if backup.mirror %}<p class="meta">{{ backup.mirror }}</p>{% endif %}
+  <p class="meta">{{ retention_note }}</p>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set tab = 'tasks' %}
+{% block strip_right %}할 일{% endblock %}
+{% block body %}
+<h2>할 일</h2>
+<form class="card" id="task-new" onsubmit="return false">
+  <label>새 할 일 <input name="title" maxlength="200" placeholder="예: 준비물 챙기기"></label>
+  <label>날짜(선택) <input name="due" type="date"></label>
+  <button type="button" class="btn-primary" id="task-add">추가</button>
+</form>
+{% if candidates %}
+<section class="card">
+  <p class="meta">확인할 후보</p>
+  {% for t in candidates %}
+  <div class="row" data-task="{{ t.id }}"><p>{{ t.title }}</p>
+    <button type="button" data-op="confirm">할 일로 확정</button><button type="button" data-op="drop">지우기</button></div>
+  {% endfor %}
+</section>
+{% endif %}
+<section class="card">
+  {% for t in open_tasks %}
+  <div class="row" data-task="{{ t.id }}"><p>{{ t.title }}{% if t.due_at %} <span class="meta">({{ t.due_at[:10] }})</span>{% endif %}</p>
+    <button type="button" data-op="complete">완료</button><button type="button" data-op="drop">지우기</button></div>
+  {% else %}<p class="meta">열린 할 일이 없습니다.</p>{% endfor %}
+</section>
+{% include "_js.html" %}
+<script>
+document.querySelectorAll('[data-task] button').forEach(b=>b.onclick=async()=>{
+  const id=b.closest('[data-task]').dataset.task;
+  try{await post('/api/tasks/'+encodeURIComponent(id)+'/'+b.dataset.op);location.reload()}catch(e){}});
+document.getElementById('task-add').onclick=async()=>{
+  const f=document.getElementById('task-new'),title=f.elements.title.value.trim(),due=f.elements.due.value;
+  if(!title)return;
+  const body={title};
+  if(due){body.due_at=due+'T00:00:00+09:00';body.all_day=true}
+  try{await post('/api/tasks',body);location.reload()}catch(e){}};
+</script>
+{% endblock %}

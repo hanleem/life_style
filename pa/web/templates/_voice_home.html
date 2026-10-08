@@ -1,0 +1,273 @@
+<div id="vb" class="card" data-state="idle">
+  <button id="vb-play" class="btn btn-primary" type="button" aria-describedby="vb-status">{{ voice_ui.play }}</button>
+  <button id="vb-stop" class="btn" type="button" hidden>{{ voice_ui.stop }}</button>
+  <button id="vb-morning" class="btn" type="button">{{ voice_ui.morning_again }}</button>
+  <label class="meta">{{ voice_ui.rate }} <select id="vb-rate">{% for r in voice_rates %}<option value="{{ r }}"{% if r == 1.0 %} selected{% endif %}>{{ r }}</option>{% endfor %}</select></label>
+  <div id="vb-status" class="meta" role="status" aria-live="polite"></div>
+  <div id="vb-caption" class="meta" aria-live="off" hidden></div>
+  <details id="vb-text" hidden><summary class="meta">{{ voice_ui.text }}</summary><ol id="vb-lines"></ol></details>
+  <audio id="vb-audio" preload="none" hidden></audio>
+</div>
+<script>
+(function () {
+  'use strict';
+  const UI = {{ voice_ui|tojson }};
+  // 0-byte PCM WAV: wakes the media element inside the tap so a later play() is not blocked (TO VERIFY ON DEVICE).
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+  const box = document.getElementById('vb');
+  const playBtn = document.getElementById('vb-play');
+  const stopBtn = document.getElementById('vb-stop');
+  const rateSel = document.getElementById('vb-rate');
+  const statusEl = document.getElementById('vb-status');
+  const caption = document.getElementById('vb-caption');
+  const details = document.getElementById('vb-text');
+  const list = document.getElementById('vb-lines');
+  const audio = document.getElementById('vb-audio');
+  const morningBtn = document.getElementById('vb-morning');
+  let state = 'idle', mode = 'none', lines = [], rate = 1.0, blobUrl = null, info = null, wantKind = null;
+
+  function setState(s, note) {
+    state = s;
+    box.dataset.state = s;
+    const label = {loading: UI.loading, playing: UI.pause, paused: UI.resume, ready: UI.again}[s] || UI.play;
+    playBtn.textContent = label;
+    playBtn.disabled = (s === 'unavailable' && !wantKind);
+    playBtn.setAttribute('aria-busy', s === 'loading' ? 'true' : 'false');
+    stopBtn.hidden = !(s === 'playing' || s === 'paused' || s === 'ready');
+    let msg = '';
+    if (s === 'unavailable') msg = note === 'disabled' ? UI.disabled : UI.no_briefing;
+    else if (s === 'error') msg = UI.error;
+    else if (s === 'loading') msg = UI.loading;
+    else if (s === 'idle' && info && info.available) msg = UI.est.replace('{s}', String(info.est_seconds));
+    statusEl.textContent = msg;
+    if (s === 'idle' || s === 'unavailable' || s === 'error') caption.hidden = true;
+  }
+
+  function showLines(all) {
+    lines = all.slice();
+    list.replaceChildren();
+    for (const t of lines) {
+      const li = document.createElement('li');
+      li.textContent = t;
+      list.appendChild(li);
+    }
+    details.hidden = lines.length === 0;
+  }
+
+  function showCaption(i) {
+    if (i < 0 || i >= lines.length) return;
+    caption.textContent = lines[i];
+    caption.hidden = false;
+  }
+
+  async function getInfo() {
+    const r = await fetch('/api/voice/briefing' + (wantKind ? '?kind=' + wantKind : ''));
+    if (!r.ok) throw new Error('info ' + r.status);
+    info = await r.json();
+    if (info && info.rate) { rate = info.rate; rateSel.value = String(info.rate); }
+    return info;
+  }
+
+  // Inside the phone app's WebView the phone's own TTS is primary (the app rejects text over 700 characters).
+  const MAX_SPEAK = 700;
+  function hasBridge() {
+    return !!(window.PABridge && typeof window.PABridge.postMessage === 'function');
+  }
+  function cutWords(t, max) {
+    if (t.length <= max) return t;
+    const head = t.slice(0, max + 1);
+    const stop = Math.max(head.lastIndexOf('. '), head.lastIndexOf('? '), head.lastIndexOf('! '));
+    if (stop > 0) return head.slice(0, stop + 1);
+    const sp = head.lastIndexOf(' ');
+    return sp > 0 ? head.slice(0, sp).replace(/[\s,]+$/, '') : '';
+  }
+  function bridgeText(all) {
+    let out = '';
+    for (const sentence of all) {
+      const next = out ? out + ' ' + sentence : sentence;
+      if (next.length > MAX_SPEAK) {
+        return out || cutWords(sentence, MAX_SPEAK);
+      }
+      out = next;
+    }
+    return out;
+  }
+  function bridgeSend(msg) {
+    try { window.PABridge.postMessage(JSON.stringify(msg)); return true; } catch (e) { return false; }
+  }
+
+  function revoke() {
+    if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+  }
+
+  function stopPlayback() {
+    audio.pause();
+    try { audio.currentTime = 0; } catch (e) { /* element has no media yet */ }
+    if (mode === 'bridge') bridgeSend({op: 'stop_speak'});
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    revoke();
+    mode = 'none';
+    setState(info && !info.available ? 'unavailable' : 'idle', info && info.reason);
+  }
+
+  // The only place the element is started after the unlock: used for the first start result, the second tap and resume.
+  function again() {
+    return audio.play().then(function () { setState('playing'); return true; },
+                             function () { setState('ready'); return false; });
+  }
+
+  function fail() {
+    revoke();
+    mode = 'none';
+    showLines(info && info.sentences ? info.sentences : lines);
+    details.open = true;
+    details.hidden = lines.length === 0;
+    setState('error');
+  }
+
+  // Device-local Korean voices only: a remote voice (localService !== true) is never used.
+  async function speakLocal(texts, speed) {
+    if (!('speechSynthesis' in window)) return false;
+    const pick = function () {
+      return window.speechSynthesis.getVoices().filter(function (v) {
+        return String(v.lang).toLowerCase().indexOf('ko') === 0 && v.localService === true;
+      });
+    };
+    let voices = pick();
+    if (!voices.length && window.speechSynthesis.addEventListener) {
+      await new Promise(function (res) {
+        const done = function () { res(); };
+        window.speechSynthesis.addEventListener('voiceschanged', done, {once: true});
+        setTimeout(done, 1500);
+      });
+      voices = pick();
+    }
+    if (!voices.length) return false;
+    window.speechSynthesis.cancel();
+    texts.forEach(function (t, i) {
+      const u = new SpeechSynthesisUtterance(t);
+      u.voice = voices[0];
+      u.lang = 'ko-KR';
+      u.rate = speed;
+      u.onstart = function () { showCaption(i); };
+      u.onend = function () { if (i === texts.length - 1) stopPlayback(); };
+      u.onerror = function () { if (state === 'playing') fail(); };
+      window.speechSynthesis.speak(u);
+    });
+    mode = 'speech';
+    setState('playing');
+    showCaption(0);
+    return true;
+  }
+
+  // 200 -> true (handled, even if play() was refused: second tap), anything else -> false (caller falls back).
+  async function tryAudio() {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let r;
+      try {
+        r = await fetch('/api/voice/briefing/audio?h=' + encodeURIComponent(info.script_hash));
+      } catch (e) { return false; }
+      if (r.status === 409 && attempt === 0) {      // the briefing changed under us: refresh the script once
+        try { await getInfo(); } catch (e) { return false; }
+        if (!info.available) return false;
+        showLines(info.sentences);
+        continue;
+      }
+      if (!r.ok) return false;
+      let blob;
+      try { blob = await r.blob(); } catch (e) { return false; }
+      revoke();
+      blobUrl = URL.createObjectURL(blob);
+      audio.src = blobUrl;
+      audio.playbackRate = rate;
+      mode = 'audio';
+      showCaption(0);
+      await again();
+      return true;
+    }
+    return false;
+  }
+
+  async function startPlayback() {
+    if (state === 'loading') return;
+    setState('loading');
+    audio.src = SILENT;
+    audio.play().catch(function () { /* unlock only */ });
+    try { await getInfo(); } catch (e) { return fail(); }
+    if (!info.available) { setState('unavailable', info.reason); return; }
+    showLines(info.sentences);
+    if (hasBridge()) {
+      const text = bridgeText(info.sentences);
+      if (text && bridgeSend({op: 'speak', text: text})) {
+        mode = 'bridge';
+        setState('playing');
+        showCaption(0);
+        return;
+      }
+    }
+    if (info.engine_ready && await tryAudio()) return;
+    if (await speakLocal(lines, rate)) return;
+    fail();
+  }
+
+  function onTap() {
+    if (state === 'playing' && mode === 'bridge') {
+      stopPlayback();                                // the phone TTS has no pause: a second tap stops it
+    } else if (state === 'playing') {
+      if (mode === 'speech') window.speechSynthesis.pause(); else audio.pause();
+      setState('paused');
+    } else if (state === 'paused' && mode === 'speech') {
+      window.speechSynthesis.resume();
+      setState('playing');
+    } else if (state === 'paused' || state === 'ready') {
+      again();
+    } else if (state === 'idle' || state === 'error') {
+      startPlayback();
+    }
+  }
+
+  playBtn.addEventListener('click', function () {
+    if (state === 'unavailable') setState('idle');              // 아침 것이 없어도 평소 버튼은 계속 쓴다
+    if (state === 'idle' || state === 'error') wantKind = null;
+    onTap();
+  });
+  if (morningBtn) morningBtn.addEventListener('click', function () {
+    if (state === 'loading') return;
+    stopPlayback();
+    wantKind = 'morning';
+    onTap();                                                    // 시작 경로는 onTap 하나뿐이다
+  });
+  stopBtn.addEventListener('click', stopPlayback);
+  rateSel.addEventListener('change', function () {
+    rate = parseFloat(rateSel.value);
+    audio.playbackRate = rate;
+    fetch('/api/voice/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({rate: rate})})
+      .catch(function () { /* playback goes on */ });
+  });
+  audio.addEventListener('timeupdate', function () {
+    if (mode !== 'audio' || !lines.length || !audio.duration) return;
+    const total = lines.reduce(function (n, t) { return n + t.length; }, 0);
+    let acc = 0;
+    for (let i = 0; i < lines.length; i++) {
+      acc += lines[i].length;
+      if (audio.currentTime / audio.duration <= acc / total) { showCaption(i); return; }
+    }
+  });
+  audio.addEventListener('pause', function () {
+    if (mode === 'audio' && state === 'playing' && !audio.ended) setState('paused');
+  });
+  audio.addEventListener('ended', function () { if (mode === 'audio') stopPlayback(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state === 'playing' && mode !== 'bridge') {
+      if (mode === 'speech') window.speechSynthesis.pause(); else audio.pause();
+      setState('paused');
+    }
+  });
+  window.addEventListener('pagehide', stopPlayback);
+
+  // Load-time work is information only (button label/availability); nothing is ever played here.
+  getInfo().then(function () {
+    if (!info.available) setState('unavailable', info.reason); else setState('idle');
+  }).catch(function () { /* the button still works; the tap reports the error */ });
+})();
+</script>

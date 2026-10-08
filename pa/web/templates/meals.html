@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% set tab = 'meals' %}
+{% block body %}
+<h2>이번 주 식단</h2>
+{% if plan %}
+<p class="meta">{{ plan.week_start }}부터 한 주{% if plan.cuisine %} · {{ plan.cuisine }}{% endif %}</p>
+{% if plan.source == 'rule' %}<p class="meta">AI를 쓸 수 없어 기본 가정식 메뉴로 채웠어요. 나중에 다시 만들면 맞춤 식단으로 바꿔 드려요.</p>{% endif %}
+{% if plan.key_ingredients %}<p><strong>이번 주 핵심 재료</strong> {{ plan.key_ingredients | join(', ') }} <span class="meta">(모든 끼니에 쓰고 남기지 않습니다)</span></p>{% endif %}
+{% for m in plan.meals %}
+<section class="card">
+  <p class="meta">{{ m.date }} · {{ '도시락' if m.slot == 'lunchbox' else '직접 요리' }}</p>
+  <p><strong>{{ m.title }}</strong>{% if m.kcal %} <span class="chip">약 {{ m.kcal }}kcal</span>{% endif %}</p>
+  {% if m.why_new %}<p class="meta">새로운 점: {{ m.why_new }}</p>{% endif %}
+  <details>
+    <summary>레서피{% if m.time_min %} ({{ m.time_min }}분){% endif %}</summary>
+    {% if m.ingredients %}<p class="meta">재료</p><ul>{% for i in m.ingredients %}<li>{{ i.name }} {{ i.qty }}</li>{% endfor %}</ul>{% endif %}
+    {% if m.steps %}<p class="meta">만드는 법</p><ol>{% for s in m.steps %}<li>{{ s }}</li>{% endfor %}</ol>{% endif %}
+  </details>
+</section>
+{% endfor %}
+<section class="card">
+  <p><strong>구매 목록</strong> <span class="meta">(집에 있는 재료는 뺐습니다)</span></p>
+  <p class="meta">재료 옆 링크를 누르면 쿠팡 검색이 열립니다. 주말 요리 재료는 로켓프레시 상품을 골라 장바구니에 담으세요.</p>
+  {% for g in plan.shopping %}
+  <p class="meta">{{ g.category }}</p>
+  <ul>{% for i in g['items'] %}<li>{{ i.name }} {{ i.qty }}
+    {% if liked.get(i.name) %}<a href="{{ liked[i.name].url }}" target="_blank" rel="noopener noreferrer">👍 좋아하는 상품으로 주문{% if liked[i.name].product_name %} ({{ liked[i.name].product_name }}){% endif %}</a>
+    {% else %}<a href="https://www.coupang.com/np/search?q={{ (i.name.split(' 또는 ')[0])|urlencode }}" target="_blank" rel="noopener noreferrer">쿠팡에서 찾기</a>{% endif %}
+    <button type="button" class="bought" data-name="{{ i.name }}" data-qty="{{ i.qty }}" data-url="{{ liked[i.name].url if liked.get(i.name) else '' }}" data-pname="{{ liked[i.name].product_name if liked.get(i.name) and liked[i.name].product_name else '' }}">샀어요</button></li>{% endfor %}</ul>
+  {% endfor %}
+</section>
+<section class="card">
+  <p><strong>배달 샐러드·샌드위치</strong></p>
+  <p>{{ w.delivery_from }} 도착 · {{ w.delivery_count }}개 (토요일에 주문)</p>
+</section>
+{% else %}
+<div class="card empty"><p class="meta">아직 이번 주 식단이 없습니다. 목요일 아침에 자동으로 만들어집니다.</p></div>
+{% endif %}
+<section class="card" id="supplies">
+  <p><strong>생필품 주문 목록</strong></p>
+  <p class="meta">비서 대화방에 '화장지 구매'처럼 적거나 아래에 넣어 두면, 다음 식자재 장보기 때 같이 쿠팡 장바구니에 담습니다. 주문하시면 '주문했어요'를 눌러 목록을 새로 시작하세요.</p>
+  {% for o in supplies %}
+  <div class="stock-row" data-supply="{{ o.id }}">
+    <span>{{ o.name }}{% if o.note %} <span class="meta">{{ o.note }}</span>{% endif %}</span>
+    {% if o.status == 'in_cart' %}<span class="chip chip-g">장바구니에 담음</span>{% endif %}
+    <button type="button" class="supply-del">지우기</button>
+  </div>
+  {% else %}<p class="meta">주문할 생필품이 없습니다.</p>{% endfor %}
+  <form id="supply-add" class="stock-row">
+    <input name="name" placeholder="예: 화장지" maxlength="30" required aria-label="생필품 이름">
+    <input name="note" placeholder="메모(선택)" maxlength="80" aria-label="메모">
+    <button type="submit">추가</button>
+  </form>
+  {% if supplies %}<button type="button" id="supply-placed">주문했어요 (목록 새로 시작)</button>{% endif %}
+</section>
+<section class="card" id="staples">
+  <p><strong>상비 재료 (개수 관리)</strong></p>
+  <p class="meta">끼니에 쓰면 자동으로 줄고, 기준 개수 이하가 되면 비서 대화방에 알려 줍니다. 다 쓰면 목록에서 빠집니다.</p>
+  {% for t in staples %}
+  <div class="stock-row" data-staple="{{ t.name }}">
+    <span>{{ t.name }}</span>
+    <input type="number" class="staple-count" min="0" max="9999" step="any" value="{{ '%g' % t.count }}" aria-label="남은 개수"> {{ t.unit or '개' }}
+    <span class="meta">기준</span><input type="number" class="staple-at" min="0" max="999" value="{{ t.reorder_at }}" aria-label="이 개수 이하면 주문">
+    {% if t.count <= t.reorder_at %}<span class="chip chip-a">주문 필요</span>{% endif %}
+    <button type="button" class="staple-save">저장</button>
+  </div>
+  {% else %}<p class="meta">아직 없습니다.</p>{% endfor %}
+</section>
+<section class="card" id="stock">
+  <p><strong>집에 있는 재료와 유통기한</strong></p>
+  <p class="meta">산 재료는 위에서 '샀어요'를 누르면 들어옵니다. 유통기한은 처음에 보관 기간 표로 추정하고, 포장에 적힌 날짜를 넣으면 바로잡으면서 그 재료의 보관 기간을 배웁니다.</p>
+  {% for s in stock %}
+  <div class="stock-row" data-id="{{ s.id }}">
+    <span>{{ s.name }}{% if s.qty %} {{ s.qty }}{% endif %}</span>
+    {% if s.estimated %}<span class="chip">추정</span>{% endif %}
+    {% if s.days_left is not none and s.days_left <= 2 %}<span class="chip chip-a">곧 상함</span>{% endif %}
+    <input type="date" class="stock-exp" value="{{ s.expires_on or '' }}" aria-label="유통기한">
+    <button type="button" class="stock-save">저장</button>
+    <button type="button" class="stock-like" data-has-product="{{ 1 if s.product_url else 0 }}">👍 좋아요</button>
+    <button type="button" class="stock-del">다 썼어요</button>
+  </div>
+  {% else %}<p class="meta">아직 없습니다.</p>{% endfor %}
+  <form id="stock-add" class="stock-row">
+    <input name="name" placeholder="재료 이름" maxlength="60" required aria-label="재료 이름">
+    <input name="qty" placeholder="양(선택)" maxlength="40" aria-label="양">
+    <input name="expires_on" type="date" aria-label="유통기한(모르면 비움)">
+    <button type="submit">추가</button>
+  </form>
+</section>
+<button type="button" class="btn-primary" id="meals-gen">지금 {{ '다시 ' if plan else '' }}만들기</button>
+{% include "_js.html" %}
+<script>
+document.getElementById('meals-gen').addEventListener('click', async function () {
+  this.disabled = true;
+  toast('식단을 만드는 중입니다(1~2분)');
+  try { await post('/api/meals/generate'); location.reload(); } catch (e) { this.disabled = false; }
+});
+document.querySelectorAll('.bought').forEach(function (b) {
+  b.addEventListener('click', async function () {
+    var body = {name: b.dataset.name, qty: b.dataset.qty};
+    if (b.dataset.url) { body.product_url = b.dataset.url; body.product_name = b.dataset.pname; }
+    try { await post('/api/pantry', body); toast('집에 있는 재료에 넣었습니다'); location.reload(); } catch (e) {}
+  });
+});
+document.querySelectorAll('.stock-row[data-id]').forEach(function (row) {
+  var id = encodeURIComponent(row.dataset.id);
+  row.querySelector('.stock-save').addEventListener('click', async function () {
+    var v = row.querySelector('.stock-exp').value;
+    if (!v) { toast('유통기한 날짜를 골라 주세요'); return; }
+    try { await post('/api/pantry/' + id + '/expiry', {expires_on: v}); toast('저장했습니다'); location.reload(); } catch (e) {}
+  });
+  row.querySelector('.stock-like').addEventListener('click', async function () {
+    var body = {};
+    if (this.dataset.hasProduct !== '1') {
+      var u = prompt('이 재료를 주문한 쿠팡 상품 주소를 붙여 넣어 주세요(앞으로 이 상품으로 주문합니다)');
+      if (!u) return;
+      body.product_url = u.trim();
+    }
+    try { await post('/api/pantry/' + id + '/like', body); toast('앞으로 이 상품으로 주문합니다'); location.reload(); } catch (e) {}
+  });
+  row.querySelector('.stock-del').addEventListener('click', async function () {
+    try { await post('/api/pantry/' + id + '/remove'); location.reload(); } catch (e) {}
+  });
+});
+document.querySelectorAll('[data-staple]').forEach(function (row) {
+  row.querySelector('.staple-save').addEventListener('click', async function () {
+    try {
+      await post('/api/staples', {name: row.dataset.staple, count: parseInt(row.querySelector('.staple-count').value || '0', 10),
+                                  reorder_at: parseInt(row.querySelector('.staple-at').value || '0', 10)});
+      toast('저장했습니다'); location.reload();
+    } catch (e) {}
+  });
+});
+document.querySelectorAll('[data-supply]').forEach(function (row) {
+  row.querySelector('.supply-del').addEventListener('click', async function () {
+    try { await post('/api/supplies/' + encodeURIComponent(row.dataset.supply) + '/remove'); location.reload(); } catch (e) {}
+  });
+});
+document.getElementById('supply-add').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var f = e.target;
+  try { await post('/api/supplies', {name: f.name.value, note: f.note.value}); location.reload(); } catch (err) {}
+});
+var placed = document.getElementById('supply-placed');
+if (placed) placed.addEventListener('click', async function () {
+  if (!confirm('주문을 넣으셨나요? 장바구니에 담았던 항목을 비우고 목록을 새로 시작합니다.')) return;
+  try { var r = await post('/api/supplies/order-placed'); toast(r.cleared + '개를 비웠습니다'); location.reload(); } catch (err) {}
+});
+document.getElementById('stock-add').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var f = e.target, body = {name: f.name.value, qty: f.qty.value};
+  if (f.expires_on.value) body.expires_on = f.expires_on.value;
+  try { await post('/api/pantry', body); location.reload(); } catch (err) {}
+});
+</script>
+{% endblock %}

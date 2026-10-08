@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block body %}
+<h2>루틴 설정</h2>
+<p class="meta"><a href="/routine">루틴으로</a></p>
+
+<section class="card" id="supply-settings">
+  <h3>정기배송 항목</h3>
+  {% for it in items %}
+  <form class="item" data-id="{{ it.id }}" onsubmit="return false">
+    <label>이름 <input name="label" value="{{ it.label }}" maxlength="60"></label>
+    <label>평일 끼니 <input name="meals_per_workday" type="number" min="1" max="6" value="{{ it.meals_per_workday }}"></label>
+    <label>주말 끼니 <input name="meals_per_weekend_day" type="number" min="0" max="6" value="{{ it.meals_per_weekend_day }}"></label>
+    <label>도착 일수 <input name="lead_days" type="number" min="0" max="14" value="{{ it.lead_days }}"></label>
+    <label>여유 일수 <input name="safety_days" type="number" min="0" max="14" value="{{ it.safety_days }}"></label>
+    <label>주문 링크(https) <input name="order_url" type="url" value="{{ it.order_url or '' }}"></label>
+    <label>주문 마감 <input name="order_cutoff" type="time" value="{{ it.order_cutoff or '' }}"></label>
+    <button type="button" class="btn-primary" data-act="save">저장</button>
+    <div>
+      <label>일시정지 시작 <input name="pause_start" type="date" value="{{ it.paused_from or '' }}"></label>
+      <label>까지 <input name="pause_until" type="date" value="{{ it.paused_until or '' }}"></label>
+      <button type="button" data-act="pause">일시정지</button>
+      <button type="button" data-act="resume">재개</button>
+    </div>
+    <button type="button" class="btn-danger" data-act="delete">삭제</button>
+  </form>
+  {% endfor %}
+  <form id="supply-new" onsubmit="return false">
+    <h4>항목 추가</h4>
+    <label>이름 <input name="label" maxlength="60"></label>
+    <label>평일 끼니 <input name="meals_per_workday" type="number" min="1" max="6" value="2"></label>
+    <label>주말 끼니 <input name="meals_per_weekend_day" type="number" min="0" max="6" value="0"></label>
+    <label>도착 일수 <input name="lead_days" type="number" min="0" max="14" value="1"></label>
+    <label>여유 일수 <input name="safety_days" type="number" min="0" max="14" value="1"></label>
+    <label>주문 링크(https) <input name="order_url" type="url"></label>
+    <label>주문 마감 <input name="order_cutoff" type="time"></label>
+    <label>{{ copy.REMAINING_LABEL }} <input name="remaining" type="number" min="0" max="1000" value="0"></label>
+    <button type="button" class="btn-primary" id="supply-add">추가</button>
+  </form>
+</section>
+
+<section class="card" id="rotation">
+  <h3>회전 후보</h3>
+  <label>항목
+    <select id="rot-item">{% for it in items %}<option value="{{ it.id }}">{{ it.label }}</option>{% endfor %}</select></label>
+  <label>이름 <input id="rot-label" maxlength="60"></label>
+  <label>링크(https) <input id="rot-url" type="url"></label>
+  <label>메모 <input id="rot-notes" maxlength="200"></label>
+  <label><input id="rot-verified" type="checkbox"> 직접 확인했어요</label>
+  <button type="button" class="btn-primary" id="rot-add">후보 추가</button>
+</section>
+
+{% include "_js.html" %}
+<script>
+(function(){
+  async function run(fn){try{await fn()}catch(e){}}
+  function val(f,n){return f.elements[n].value.trim()}
+  function num(f,n){return parseInt(f.elements[n].value,10)}
+  function itemBody(f){
+    return {label:val(f,'label'),meals_per_workday:num(f,'meals_per_workday'),
+      meals_per_weekend_day:num(f,'meals_per_weekend_day'),lead_days:num(f,'lead_days'),
+      safety_days:num(f,'safety_days'),order_url:val(f,'order_url')||null,order_cutoff:val(f,'order_cutoff')||null}}
+  document.querySelectorAll('form.item').forEach(function(f){
+    var id=f.dataset.id,base='/api/supply/'+id;
+    function act(n,fn){f.querySelector('[data-act="'+n+'"]').addEventListener('click',function(){run(fn)})}
+    act('save',async function(){await post(base,itemBody(f));toast('저장했습니다')});
+    act('pause',async function(){await post(base+'/pause',{start:val(f,'pause_start'),until:val(f,'pause_until')});toast('저장했습니다')});
+    act('resume',async function(){await post(base+'/resume');toast('저장했습니다')});
+    act('delete',async function(){if(await confirmDelete(base+'/delete'))location.reload()});
+  });
+  document.getElementById('supply-add').addEventListener('click',function(){run(async function(){
+    var f=document.getElementById('supply-new'),b=itemBody(f);b.remaining=num(f,'remaining');
+    await post('/api/supply',b);location.reload()})});
+  document.getElementById('rot-add').addEventListener('click',function(){run(async function(){
+    await post('/api/rotation',{item_id:document.getElementById('rot-item').value,
+      label:document.getElementById('rot-label').value.trim(),url:document.getElementById('rot-url').value.trim(),
+      notes:document.getElementById('rot-notes').value.trim()||null,
+      verified:document.getElementById('rot-verified').checked});
+    toast('저장했습니다');location.reload()})});
+})();
+</script>
+{% endblock %}
+

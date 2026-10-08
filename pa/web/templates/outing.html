@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}나들이{% endblock %}
+{% block body %}
+<h2>주말 나들이 추천</h2>
+<p class="meta">아이와 함께 가기 좋은 산책 코스와 포장 식당을 찾아 드려요. 출발 지역은 <a href="/settings/scout">설정</a>에서 정해요.</p>
+<button type="button" class="btn-primary" id="run-outing">지금 추천받기</button>
+{% for c in cards %}
+<div class="card" data-rec="{{ c.id }}">
+  <strong>{{ c.title }}</strong>
+  <p class="meta">{{ c.sub }}</p>
+  <p class="meta">{{ c.label }}</p>
+  <button type="button" data-act="open">링크 열기</button>
+  <button type="button" data-rate="like">👍 좋아요</button>
+  <button type="button" data-rate="soso">😐 보통</button>
+  <button type="button" data-rate="dislike">👎 별로예요</button>
+</div>
+{% else %}
+<div class="card empty"><p class="meta">아직 추천이 없습니다.</p></div>
+{% endfor %}
+<p><a class="btn" href="/settings/taste">학습된 취향</a></p>
+{% include "_js.html" %}
+<script>
+document.getElementById('run-outing').onclick=async()=>{
+  try{const r=await post('/api/scout/run/outing');toast(r.message||(r.cards+'개를 찾았어요'));if(r.cards)location.reload()}catch(e){}};
+document.querySelectorAll('[data-rec]').forEach(card=>{
+  const id=card.dataset.rec;
+  card.querySelector('[data-act="open"]').onclick=async()=>{
+    try{const r=await post('/api/recs/'+id+'/open');window.open(r.url,'_blank','noopener,noreferrer')}catch(e){}};
+  card.querySelectorAll('[data-rate]').forEach(b=>b.onclick=async()=>{
+    try{await post('/api/feedback',{rec_id:id,rating:b.dataset.rate});toast('고마워요, 다음 추천에 반영할게요')}catch(e){}});
+});
+</script>
+{% endblock %}

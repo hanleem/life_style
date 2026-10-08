@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block body %}
+<h2>학습된 취향</h2>
+{% if not sections %}<div class="card empty"><p class="meta">아직 학습된 취향이 없습니다.</p></div>{% endif %}
+{% for s in sections %}
+<div class="card"><strong>{{ s.label }}</strong>
+  {% for r in s.rows %}
+  <div class="row" data-domain="{{ s.domain }}" data-feature="{{ r.feature }}" data-value="{{ r.value }}" data-pinned="{{ '1' if r.pinned else '0' }}">
+    {{ r.feature }}: {{ r.value }} — {{ r.pref }} (n={{ r.n }}){% if r.pinned %} 📌{% endif %}
+    <button class="js-del" aria-label="{{ r.feature }} 삭제">삭제</button><button class="js-pin" aria-label="{{ r.feature }} 고정">📌</button>
+  </div>
+  {% endfor %}
+  <button class="js-reset-domain btn-danger" data-domain="{{ s.domain }}">{{ s.label }} 초기화</button>
+</div>
+{% endfor %}
+<button class="js-reset-all btn-danger">취향 초기화</button>
+<p><a class="btn" href="/outing">나들이 추천으로</a></p>
+{% include "_js.html" %}
+<script>
+document.addEventListener('click',async ev=>{
+  const b=ev.target.closest('button');if(!b)return;const row=b.closest('.row');
+  if(b.classList.contains('js-del')){const d=row.dataset;
+    await call('DELETE',`/api/taste/${encodeURIComponent(d.domain)}/${encodeURIComponent(d.feature)}/${encodeURIComponent(d.value)}`);location.reload()}
+  else if(b.classList.contains('js-pin')){const d=row.dataset;
+    await post('/api/taste/pin',{domain:d.domain,feature:d.feature,value:d.value,pinned:d.pinned!=='1'});location.reload()}
+  else if(b.classList.contains('js-reset-domain')){
+    if(confirm('이 도메인의 학습된 취향을 모두 지울까요?')){await post('/api/taste/reset',{domain:b.dataset.domain});location.reload()}}
+  else if(b.classList.contains('js-reset-all')){
+    if(confirm('학습된 취향을 모두 초기화할까요?')){await post('/api/taste/reset',{});location.reload()}}
+});
+</script>
+{% endblock %}

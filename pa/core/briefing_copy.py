@@ -1,0 +1,20 @@
+"""브리핑 고정 문구(LLM 생성 없음). 우선순위 이유 문구."""
+
+REASON_SAFETY = "안전·장비 확인"
+REASON_DUE_TODAY = "오늘 마감"
+REASON_OVERDUE = "기한 지남"
+REASON_WAITING = "답을 기다리는 사람이 있음"
+REASON_APPOINTMENT = "오늘 약속 {hhmm}"
+REASON_THIS_WEEK = "이번 주 마감"
+REASON_NEXT_WEEK = "다음 주 마감"
+
+RANK_ERROR_LINE = "우선순위 목록을 만들지 못했습니다"
+
+CAL_ADD_LABEL = "캘린더에 추가"
+CAL_CONFIRM_TAIL = "일정 초안을 만들까요? 승인 후 캘린더에 들어갑니다"
+CAL_CONFLICT = "같은 시간에 일정 {n}건: {first}"
+DROP_LABEL = "지우기"
+DROP_FAILED = "지우지 못했습니다"
+DROPPED_OK = "지웠습니다"
+CAL_FAILED = "일정 초안을 만들지 못했습니다"
+WORK_DUE_UNKNOWN = "일정 확인 필요"

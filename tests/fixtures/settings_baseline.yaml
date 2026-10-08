@@ -1,0 +1,17 @@
+timezone: Asia/Seoul
+work_start: "08:00"
+protected_until: "08:15"          # 이 시각 전에는 알림 보류
+work_end:                          # 요일별 퇴근 = quiet 시작
+  mon: "21:00"
+  tue: "21:00"
+  wed: "22:00"
+  thu: "22:00"
+  fri: "21:00"
+  sat: "13:00"
+rest_days: [sun]
+briefing:
+  days: [mon, tue, wed, thu, fri]
+  morning: "08:30"
+  evening_before_end_min: 30     
+  friday: "15:45"                
+max_today_must: 3
