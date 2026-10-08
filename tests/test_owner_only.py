@@ -18,7 +18,8 @@ from pa.web.app import create_app
 LOGIN = "prof@example.com"
 TS = {"Tailscale-User-Login": LOGIN}
 # 가드 통과 후에도 공개인 경로(소유자 세션 불필요) - 이 상수만 늘릴 수 있다.
-PUBLIC_AFTER_GUARD = {"/health", "/auth/google/callback"}
+# /join/{token}: 일회용 토큰이 곧 자격(기기 등록). /manifest.webmanifest·/sw.js: 브라우저가 로그인 없이 읽는다.
+PUBLIC_AFTER_GUARD = {"/health", "/auth/google/callback", "/join/{token}", "/manifest.webmanifest", "/sw.js"}
 SKIP_METHODS = {"HEAD", "OPTIONS"}
 
 
@@ -245,7 +246,15 @@ def test_static_mount_is_safe(con):
     assert d == expected
     files = sorted(d.rglob("*"))
     assert files, "static dir empty"
+    icons = d / "icons"
     for f in files:
+        if f == icons:
+            assert f.is_dir() and not f.is_symlink()
+            continue
+        if f.parent == icons:   # PWA 아이콘(저장소에 올라가는 이미지는 이것뿐)
+            assert f.is_file() and f.suffix in {".png", ".svg"}, f"unexpected icon file {f.name}"
+            assert not f.is_symlink()
+            continue
         assert f.is_file() and f.parent == d, f"unexpected entry {f}"
         assert f.name in STATIC_ALLOWED_FILES and f.suffix in STATIC_ALLOWED_EXT, f"non-css file in static: {f.name}"
         # (c) 심볼릭 링크 없음
@@ -535,15 +544,16 @@ def test_main_binds_loopback_only():
 
 # --- 세션 쿠키 / 헤더 ---
 
-def _owner_cookie(secret: str) -> str:
-    data = base64.b64encode(_json.dumps({"owner": True}).encode())
+def _owner_cookie(secret: str, device: str | None = None) -> str:
+    data = base64.b64encode(_json.dumps({"owner": True, **({"device": device} if device else {})}).encode())
     return TimestampSigner(secret).sign(data).decode()
 
 
 def _login(app, base="https://testserver"):
     """소유자 세션(서명 쿠키)을 가진 클라이언트. 로그인 라우트는 Stage 5(QR 기기 등록)에서 생기므로 쿠키를 직접 만든다."""
+    from pa.core import devices
     c = TestClient(app, base_url=base, follow_redirects=False)
-    c.cookies.set("pa_session", _owner_cookie("t" * 32))
+    c.cookies.set("pa_session", _owner_cookie("t" * 32, devices.add_device(app.state.con, "테스트 폰")))
     return c, None
 
 

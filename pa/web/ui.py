@@ -3,11 +3,20 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+import json
+
 from pa.core import profile
+from tools.gen_tokens import resolved_colors
 from pa.voice import prefs as voice_prefs
 from pa.voice import voice_copy
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
+TOKENS = json.loads((Path(__file__).resolve().parents[2] / "design/tokens.json").read_text(encoding="utf-8"))
+
+
+def theme_colors(theme: str, mode: str = "light") -> dict:
+    """테마의 색 전체(design/tokens.json). 매니페스트·theme-color 메타에 쓴다."""
+    return resolved_colors(TOKENS, theme, mode)
 
 
 def base_context(request) -> dict:
@@ -22,6 +31,7 @@ def base_context(request) -> dict:
         prof = None
     attrs = profile.theme_attrs(prof)
     return {"approvals_count": n, "ui_theme": attrs["theme"], "ui_font": attrs["font"],
+            "ui_theme_color": theme_colors(attrs["theme"])["headerFrom"],
             "honorific": (prof or {}).get("honorific", "")}
 
 

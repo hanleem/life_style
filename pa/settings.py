@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     allowed_tailscale_login: str = ""
     public_url: str = ""   # 폰에서 PA 에 들어가는 주소(tailscale serve 가 알려 주는 https 주소). 알림 링크에 쓴다
     dev_skip_tailscale: bool = False
+    vapid_contact: str = "mailto:admin@example.com"   # 웹 푸시 서비스에 알리는 연락처(mailto: 또는 https 주소)
     require_profile: bool = True   # 첫 인터뷰(family_profile.yaml) 전에는 모든 화면을 /welcome 으로 보낸다
     # 허용 Host 헤더. 환경변수 PA_ALLOWED_HOSTS(쉼표 구분)로 tailnet 호스트명을 추가한다.
     allowed_hosts: Annotated[list[str], NoDecode] = ["127.0.0.1", "localhost"]

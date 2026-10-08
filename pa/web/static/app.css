@@ -170,3 +170,7 @@ a.btn.btn-primary{display:flex}
 .theme-btn{display:inline-block;align-self:flex-start;padding:var(--space-xs) var(--space-md);border-radius:var(--radius-button);
   background:var(--green);color:var(--on-accent);font-size:var(--font-small);font-weight:700}
 .notice{padding:var(--space-md);border-radius:var(--radius-button);margin:0 0 var(--space-md)}
+
+/* 기기 등록 QR: 다크 모드에서도 카메라가 읽도록 흰 바탕을 유지한다 */
+.qr{display:flex;justify-content:center;margin:var(--space-sm) 0}
+.qr svg{width:100%;max-width:var(--layout-dialog-max);height:auto;background:var(--on-accent)}

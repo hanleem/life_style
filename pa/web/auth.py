@@ -4,6 +4,7 @@ from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Request
 
 from pa.clock import utcnow, utcnow_iso
+from pa.core import devices
 from pa.core.errors import Forbidden
 
 router = APIRouter()
@@ -19,7 +20,7 @@ GOOGLE_CALLBACK = "/auth/google/callback"
 def LOOPBACK_DIRECT(settings):
     """TailscaleGuard 가 헤더 검사를 생략하는 조건: 프록시를 거치지 않고 직접 루프백(이 PC 의 브라우저)으로 들어온 요청.
     is_loopback_scope() 가 클라이언트 주소·프록시 헤더 부재·Host 이름을 모두 확인한다.
-    TODO(Stage 5): 휴대폰은 QR 기기 등록(서명 쿠키)으로 인증한다. 지금은 이 PC(루프백)만 소유자다."""
+    휴대폰은 QR 기기 등록(서명 쿠키)으로 인증하므로(require_owner) 이 PC 의 직접 접속만 헤더 검사를 건너뛴다."""
     return True
 
 
@@ -216,7 +217,8 @@ class TailscaleGuard:
             if not direct:
                 if not s.dev_skip_tailscale and not (scope["type"] == "http" and path == "/health"):
                     login = _headers(scope).get("tailscale-user-login", "")
-                    if not s.allowed_tailscale_login or login != s.allowed_tailscale_login:
+                    allowed = [x.strip() for x in s.allowed_tailscale_login.split(",") if x.strip()]   # 가족이 각자 계정이면 쉼표로 여러 개
+                    if not allowed or login not in allowed:
                         return await _reject(scope, receive, send)
         await self.app(scope, receive, send)
 
@@ -239,10 +241,14 @@ def same_origin(request: Request) -> bool:
 
 
 def require_owner(request: Request) -> str:
-    """소유자 확인. 지금은 이 PC 의 브라우저(직접 루프백)만 소유자로 인정한다.
-    TODO(Stage 5): QR 로 등록한 기기의 서명 쿠키(session["owner"])도 인정한다."""
-    if request.session.get("owner"):
-        return f"device:{request.session.get('device', '?')}"
+    """소유자 확인. ① QR 로 등록한 기기의 서명 쿠키(등록된 기기이고 해제되지 않았을 때) ② 이 PC 의 브라우저(직접 루프백)."""
+    dev = request.session.get("device")
+    if request.session.get("owner") and dev:
+        con = request.app.state.con
+        if devices.is_active(con, dev):
+            devices.touch(con, dev)
+            return f"device:{dev}"
+        request.session.clear()   # 해제됐거나 없는 기기의 쿠키는 버린다
     if is_loopback(request):
         return "pc:loopback"
     raise HTTPException(401, "로그인이 필요합니다")

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}기기{% endblock %}
+{% block body %}
+<h2>휴대폰 등록·기기 관리</h2>
+<p class="meta">휴대폰을 등록하면 비밀번호 없이 가족 비서를 쓸 수 있어요. 등록은 이 화면의 QR 코드를 휴대폰 카메라로 찍으면 끝나요.</p>
+{% if qr %}
+<section class="card" id="qr-card">
+  <p><strong>휴대폰 카메라로 이 QR을 찍어 주세요</strong></p>
+  <div class="qr" role="img" aria-label="휴대폰 등록용 QR 코드">{{ qr | safe }}</div>
+  <p class="meta">5분 안에, 한 번만 쓸 수 있어요. 시간이 지나면 아래 버튼으로 새로 만드세요.</p>
+</section>
+{% elif no_address %}
+<section class="card notice notice-danger" role="alert">
+  <p><strong>휴대폰이 접속할 주소를 아직 몰라요.</strong></p>
+  <p>Tailscale 설정을 마친 뒤에 다시 시도해 주세요. 설치 안내서의 "휴대폰 연결" 부분을 참고하세요.</p>
+</section>
+{% endif %}
+<form method="post" action="/devices/new"><button class="btn-primary" type="submit">휴대폰 추가{% if qr %} (QR 새로 만들기){% endif %}</button></form>
+<h3 class="sec-t">등록된 기기</h3>
+{% for d in devices %}
+<section class="card row">
+  <span><strong>{{ d.name }}</strong><br><span class="meta">등록 {{ d.created_at[:10] }}{% if d.last_seen_at %} · 마지막 사용 {{ d.last_seen_at[:10] }}{% endif %}</span></span>
+  <form method="post" action="/devices/{{ d.id }}/revoke"><button class="btn-danger" type="submit">해제</button></form>
+</section>
+{% else %}<div class="card empty"><p class="meta">아직 등록한 휴대폰이 없어요.</p></div>{% endfor %}
+<p class="meta">해제하면 그 휴대폰은 바로 쓸 수 없고, 알림도 더 보내지 않아요.</p>
+<p><a class="btn" href="/settings">← 설정으로</a></p>
+{% endblock %}

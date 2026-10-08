@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>이 휴대폰을 등록할까요?</h2>
+<p class="meta">등록하면 이 휴대폰에서 비밀번호 없이 가족 비서를 쓸 수 있어요. 이름은 나중에 기기 목록에서 알아보기 위한 거예요.</p>
+<form method="post" action="/join/{{ token }}">
+  <label class="field">기기 이름
+    <input class="field-full" type="text" name="name" value="{{ default_name }}" maxlength="30" autocomplete="off">
+  </label>
+  <button class="btn-primary" type="submit">등록하기</button>
+</form>
+{% endblock %}

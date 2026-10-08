@@ -140,3 +140,10 @@ CREATE TABLE IF NOT EXISTS routine_proposal (
   shown_at TEXT NOT NULL, response TEXT CHECK (response IN ('accepted','edited','passed')), responded_at TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_routine_proposal_key ON routine_proposal(key, shown_at);
+CREATE TABLE IF NOT EXISTS device (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL, last_seen_at TEXT, revoked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS push_subscription (
+  id TEXT PRIMARY KEY, device_id TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL,
+  created_at TEXT NOT NULL, failed_count INTEGER NOT NULL DEFAULT 0
+);
