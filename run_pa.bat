@@ -1,6 +1,6 @@
 @echo off
 rem Family assistant server launcher. Restarts automatically if the server stops.
-rem Started by the "family assistant" scheduled task (at logon + every 5 min watchdog; a running copy blocks duplicates).
+rem Started at logon by the scheduled task that install.ps1 registers. If the server stops, this loop starts it again.
 title Family assistant server
 cd /d "%~dp0"
 set "PYTHONUTF8=1"

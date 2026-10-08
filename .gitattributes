@@ -1,0 +1,4 @@
+# 윈도우 스크립트는 줄바꿈이 CRLF 여야 안전하게 실행된다(받는 사람의 git 설정과 상관없이)
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.md  text
