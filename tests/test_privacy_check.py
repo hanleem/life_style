@@ -38,7 +38,8 @@ def test_banned_expressions_are_found(tmp_path, word):
 
 
 def test_initials_only_match_whole_words(tmp_path):
-    assert _run(tmp_path, {"t.txt": "XSSJX 와 xCBSx 는 낱말이 아니다\n"}) == []
+    glued = j("X", "S", "SJX 와 x", "C", "BSx 는 낱말이 아니다\n")
+    assert _run(tmp_path, {"t.txt": glued}) == []
 
 
 def test_emails_other_than_example_are_found(tmp_path):
