@@ -6,7 +6,7 @@
 
 ## 감독자 점검 목록(push 전)
 1. `uv run python tools/privacy_check.py` 가 0건인지, `git status` 에 `data/`·`.env`·`client_secret*.json`이 없는지.
-2. **커밋 이력 정리가 필요하다.** 작업 폴더는 privacy_check 0건이지만, 첫 커밋(`Stage 1`)의 이력에는 금지 표현이 남아 있다(`docs/DESIGN.md`·`docs/HANDOFF.md` 의 원본 설명, 몇몇 테스트의 지역명, 초기 privacy_check.py). 공개 저장소는 이력까지 보이므로 push 전에 이력을 새로 만들거나(예: 현재 트리를 새 첫 커밋으로 squash) 해당 커밋을 고쳐야 한다. 모든 커밋에 검사기 규칙을 적용하는 방법은 `git ls-tree -r <커밋>` + `git show <커밋>:<파일>` 로 `tools/privacy_check.py` 의 규칙을 돌리면 된다. 임시 파일은 `.gitignore` 의 `tools_tmp/`.
+2. 커밋 이력은 정리했다: 모든 커밋과 커밋 메시지에 privacy_check 규칙을 적용해 0건이다(첫 두 단계는 한 커밋으로 합쳤다). 정리 전 이력은 로컬 태그 `backup/pre-cleanup` 에 있다 — **이 태그는 절대 push 하지 말고**, push 직전에 `git tag -d backup/pre-cleanup` 로 지운다.
 3. 실제 PC 에서 `설치하기.bat` 를 한 번 끝까지 돌려 본다(winget·Tailscale·ChatGPT 로그인은 사람이 직접). 이 환경에서는 스크립트를 실행하지 않고 문법·약속만 테스트했다.
 4. 아이폰에서 QR 등록 → 홈 화면 추가 → 알림 켜기 → 식단 알림이 오는지 확인한다(웹 푸시는 실기기 확인이 필요하다).
 5. 가정통신문 사진 한 장으로 후보가 나오는지 확인한다(AI 호출은 실제 Codex 로그인이 필요하다).
