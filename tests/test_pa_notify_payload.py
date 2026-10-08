@@ -7,7 +7,7 @@ def test_allowed_set_matches_spec():
                        "briefing_morning": "/", "briefing_evening": "/", "decision_needed": "/",
                        "system": "/settings/health",
                        "routine_supply": "/routine", "routine_close": "/routine/evening", "reminder": "/",
-                       "meal_plan": "/meals"}
+                       "meal_plan": "/meals", "kids_prep": "/kids"}
     assert render("routine_supply", 3) == "이번 주 주문 확인"
     assert render("routine_close", 3) == "하루 마무리 시간입니다"
     assert render("reminder", 3) == "챙길 일이 있습니다"

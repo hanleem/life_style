@@ -92,6 +92,24 @@ def add(con, title: str, now: datetime, *, due_at: str | None = None, all_day: b
     return tid
 
 
+def add_candidate(con, title: str, now: datetime, *, due_date=None, source_ref: str) -> str:
+    """사람이 확인하기 전의 후보 할 일(status=candidate)을 만든다. due_date 는 날짜(종일). source_ref 는 출처마다 유일해야 한다."""
+    from pa.ids import new_id
+    title = (title or "").strip()
+    if not title or len(title) > 200:
+        raise ValueError("할 일 제목은 1~200자여야 합니다")
+    due_at = datetime.combine(due_date, datetime.min.time(), KST).isoformat() if due_date else None
+    tid, ts = new_id(), _utc(now)
+    with atomic(con):
+        con.execute("INSERT INTO task(id,title,bucket,due_at,due_is_all_day,due_confidence,status,created_at,updated_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                    (tid, title, "this_week", due_at, int(bool(due_at)), "explicit" if due_at else "unknown", "candidate", ts, ts))
+        con.execute("INSERT INTO task_source(id,task_id,source_type,source_ref,observed_at) VALUES(?,?,?,?,?)",
+                    (new_id(), tid, "memo", source_ref, ts))
+        audit(con, "owner", "task.add_candidate", {"task_id": tid})
+    return tid
+
+
 def complete(con, task_id: str, now: datetime) -> None:
     """candidate|open -> done."""
     t = _task(con, task_id)

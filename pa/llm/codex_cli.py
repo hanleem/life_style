@@ -149,7 +149,8 @@ class CodexCLI:
         async with _sem:
             with tempfile.TemporaryDirectory(prefix="pa-codex-", ignore_cleanup_errors=True) as workdir:   # 프로젝트 파일이 보이지 않는 빈 폴더
                 out_file = str(Path(workdir) / "last_message.txt")
-                args = build_args(resolve_bin(self.bin), out_file, web=web, images=images)
+                # codex 는 빈 임시 폴더에서 실행되므로 상대 경로의 이미지는 찾지 못한다 → 항상 절대 경로로 넘긴다
+                args = build_args(resolve_bin(self.bin), out_file, web=web, images=[str(Path(i).resolve()) for i in images])
                 proc = await asyncio.create_subprocess_exec(*args, stdin=asyncio.subprocess.PIPE,
                                                             stdout=asyncio.subprocess.PIPE,
                                                             stderr=asyncio.subprocess.PIPE, env=env, cwd=workdir,

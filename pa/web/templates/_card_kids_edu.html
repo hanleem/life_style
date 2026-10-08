@@ -1,0 +1,8 @@
+<a class="card now-card" id="card-kids_edu" href="/kids">
+  <div class="meta">아이 교육·준비물</div>
+  {% set kd = card_data.kids_edu or {} %}
+  {% if kd['items'] %}<b>내일 준비물 {{ kd['items'] | length }}가지</b>
+    <div class="meta">{% for i in kd['items'][:3] %}{{ i.text }}{% if not loop.last %}, {% endif %}{% endfor %}{% if kd['items'] | length > 3 %} 외 {{ kd['items'] | length - 3 }}가지{% endif %}</div>
+  {% else %}<b>내일 챙길 준비물이 없어요</b>{% endif %}
+  {% if kd.pending %}<div class="meta">확인할 가정통신문 {{ kd.pending }}건</div>{% endif %}
+</a>

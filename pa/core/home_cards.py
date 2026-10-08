@@ -4,10 +4,17 @@
 (아이 교육 = 6단계, 가족 건강·생활비 = 4단계에서 추가)
 """
 import logging
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 log = logging.getLogger("pa.home_cards")
+KST = ZoneInfo("Asia/Seoul")
 
-IMPLEMENTED = ("housekeeping", "outing", "health", "money")
+
+def _today() -> date:
+    return datetime.now(KST).date()
+
+IMPLEMENTED = ("housekeeping", "outing", "health", "money", "kids_edu")
 
 
 def visible(prof: dict | None) -> list[str]:
@@ -18,6 +25,11 @@ def visible(prof: dict | None) -> list[str]:
 def _outing(con) -> dict:
     n = con.execute("SELECT COUNT(*) FROM recommendation WHERE domain='outing'").fetchone()[0]
     return {"count": n}
+
+
+def _kids_edu(con, prof) -> dict:
+    from pa.core import kids, notice
+    return {"items": kids.day_plan(con, _today() + timedelta(days=1), prof)["items"], "pending": notice.pending_count(con)}
 
 
 def _health(con, prof) -> dict:
@@ -37,7 +49,7 @@ def _housekeeping(con) -> dict:
 
 
 _DATA = {"outing": lambda con, prof: _outing(con), "housekeeping": lambda con, prof: _housekeeping(con),
-         "health": _health, "money": _money}
+         "health": _health, "money": _money, "kids_edu": _kids_edu}
 
 
 def data(con, keys: list[str], prof: dict | None = None) -> dict[str, dict]:

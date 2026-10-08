@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}아이 설정{% endblock %}
+{% block body %}
+<h2>등교·학원 시간 설정</h2>
+{% if error %}<p class="notice notice-danger" role="alert">{{ error }}</p>{% endif %}
+{% if not labels %}
+<div class="card empty"><p class="meta">가족 프로필에 아이가 없어요. <a href="/welcome?restart=1">인터뷰 다시 하기</a>에서 아이를 넣어 주세요.</p></div>
+{% else %}
+<form method="post" action="/kids/settings">
+  <p class="meta">여기에 적은 요일과 준비물로, 하루 전 저녁에 "내일 준비물"을 알려 드려요.</p>
+  <label class="field">준비물 알림 시각(전날 저녁)
+    <input type="time" name="prep_time" value="{{ prep_time }}" required>
+  </label>
+  {% for c in children %}{% set i = loop.index0 %}
+  <section class="card kid-section">
+    <h3 class="sec-t">{{ labels[i] }}</h3>
+    <p class="meta">등교하는 요일</p>
+    <div class="chip-row">{% for d in days %}<label class="check-row"><input type="checkbox" name="c{{ i }}_days" value="{{ d }}" {% if d in c.school_days %}checked{% endif %}>{{ day_label[d] }}</label>{% endfor %}</div>
+    <label class="field">등교 시각 <input type="time" name="c{{ i }}_start" value="{{ c.school_start }}"></label>
+    <label class="field">하교 시각 <input type="time" name="c{{ i }}_end" value="{{ c.school_end }}"></label>
+    <p class="meta">학원·방과후 (최대 {{ max_classes }}개, 빈 칸은 건너뛰어요)</p>
+    {% for k in c.classes %}{% set j = loop.index0 %}
+    <fieldset class="member-row card class-row" data-row="{{ j }}" data-filled="{{ c.filled }}">
+      <legend class="meta">{{ loop.index }}번째 학원</legend>
+      <label class="field">이름 <input type="text" name="c{{ i }}_k{{ j }}_name" value="{{ k.name }}" maxlength="20" autocomplete="off" placeholder="예: 영어학원"></label>
+      <div class="chip-row">{% for d in days %}<label class="check-row"><input type="checkbox" name="c{{ i }}_k{{ j }}_days" value="{{ d }}" {% if d in k.days %}checked{% endif %}>{{ day_label[d] }}</label>{% endfor %}</div>
+      <label class="field">시작 시각 <input type="time" name="c{{ i }}_k{{ j }}_start" value="{{ k.start }}"></label>
+      <label class="field">준비물(쉼표로 구분) <input class="field-full" type="text" name="c{{ i }}_k{{ j }}_bring" value="{{ k.bring | join(', ') }}" placeholder="예: 영어 책가방, 단어장" autocomplete="off"></label>
+    </fieldset>
+    {% endfor %}
+  </section>
+  {% endfor %}
+  <button class="btn-primary" type="submit">저장</button>
+</form>
+<script>
+(function(){
+  document.querySelectorAll('.kid-section').forEach(function(sec){
+    var rows=[].slice.call(sec.querySelectorAll('.class-row'));
+    if(!rows.length)return;
+    var shown=parseInt(rows[0].dataset.filled,10)||1,btn=document.createElement('button');
+    btn.type='button';btn.textContent='＋ 학원 더 적기';
+    function sync(){rows.forEach(function(r,n){r.hidden=n>=shown});btn.hidden=shown>=rows.length}
+    btn.onclick=function(){shown++;sync()};rows[rows.length-1].after(btn);sync();
+  });
+})();
+</script>
+{% endif %}
+<p><a class="btn" href="/kids">← 돌아가기</a></p>
+{% endblock %}

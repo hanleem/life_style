@@ -155,3 +155,13 @@ def test_resolve_bin_prefers_absolute_existing(tmp_path):
     f = tmp_path / "codex.exe"
     f.write_text("x")
     assert codex_cli.resolve_bin(str(f)) == str(f)
+
+
+async def test_relative_image_paths_are_made_absolute(monkeypatch, tmp_path):
+    import os
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.jpg").write_bytes(b"x")
+    calls = _patch(monkeypatch, '{"a": 1}')
+    await CodexCLI("codex").run_json("p", None, images=["a.jpg"])
+    given = calls["args"][calls["args"].index("-i") + 1]
+    assert os.path.isabs(given) and given == str((tmp_path / "a.jpg").resolve())

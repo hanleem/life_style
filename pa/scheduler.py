@@ -2,13 +2,13 @@ import sqlite3
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from pa.core import meals
+from pa.core import kids, meals
 from pa.rules import Rules
 
 KST = ZoneInfo("Asia/Seoul")
 SCOUT_JOBS = ("scout_outing",)
 JOBS = ("brief_morning", "brief_evening", "brief_friday", "deliver_held", "meal_plan", "meal_cart", "meal_grocery",
-        "meal_delivery") + SCOUT_JOBS
+        "meal_delivery", "kids_prep") + SCOUT_JOBS
 THURSDAY = 3
 GRACE_SECONDS = 900
 FRIDAY = 4
@@ -46,6 +46,7 @@ def due_jobs(con: sqlite3.Connection, now: datetime, rules: Rules, scout=None) -
         return []
     today = n.date()
     sched_times = _sched_times(rules, n.weekday(), scout)
+    sched_times["kids_prep"] = kids.prep_time(con)   # 하루 전 저녁 준비물 알림(아이 루틴 설정의 시각)
     done = {r[0] for r in con.execute("SELECT job_id FROM job_run WHERE for_date=?", (today.isoformat(),))}
     out = []
     for job, t in sched_times.items():

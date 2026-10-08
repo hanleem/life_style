@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}가정통신문{% endblock %}
+{% block body %}
+<h2>가정통신문 올리기</h2>
+<p class="meta">가정통신문을 사진으로 찍어 올리면 일정과 준비물을 읽어 후보로 보여 드려요. 확인하기 전에는 캘린더나 할 일에 아무것도 넣지 않아요. 사진은 읽은 뒤 바로 지워요.</p>
+{% if message %}<p class="notice {{ '' if '후보를 찾았어요' in message else 'notice-danger' }}" role="status">{{ message }}</p>{% endif %}
+<form method="post" action="/notice" enctype="multipart/form-data" id="notice-form" class="card">
+  <label class="field">사진 고르기(카메라로 찍기도 돼요)
+    <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required>
+  </label>
+  <button class="btn-primary" type="submit" id="notice-go">읽어 보기</button>
+  <p class="meta" id="notice-wait" hidden role="status">사진을 읽고 있어요. 1~2분 걸릴 수 있어요. 이 화면을 닫지 마세요.</p>
+</form>
+<script>
+document.getElementById('notice-form').addEventListener('submit',function(){
+  document.getElementById('notice-go').disabled=true;document.getElementById('notice-wait').hidden=false});
+</script>
+{% for e in events %}
+<section class="card" data-event="{{ e.id }}">
+  <p><strong>{{ e.title }}</strong></p>
+  <p class="meta">{% if e.event_date %}{{ e.event_date }}{% if e.start_time %} {{ e.start_time }}{% endif %}{% else %}날짜를 읽지 못했어요{% endif %}{% if e.child_hint %} · 문서의 대상: {{ e.child_hint }}{% endif %}</p>
+  {% if e.note %}<p class="meta">{{ e.note }}</p>{% endif %}
+  {% if e['items'] %}<p class="meta">준비물</p><ul>{% for t in e['items'] %}<li>{{ t }}</li>{% endfor %}</ul>{% else %}<p class="meta">준비물은 따로 없어요.</p>{% endif %}
+  {% if children %}
+  <label class="field">어느 아이?
+    <select class="child-pick">
+      <option value="">(고르기)</option>
+      {% for label in children %}<option value="{{ loop.index0 }}" {% if e.child_index == loop.index0 %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <div class="actions">
+    <button type="button" data-act="tasks">할 일 후보로 담기</button>
+    {% if calendar_ready and e.event_date %}<button type="button" data-act="calendar">캘린더에 추가(승인 필요)</button>{% endif %}
+    <button type="button" data-act="finish">확인 끝</button>
+    <button type="button" class="btn-danger" data-act="dismiss">잘못 읽었어요</button>
+  </div>
+  {% if e.task_ids %}<p class="meta">✓ 할 일 후보로 담았어요 — <a href="/tasks">할 일에서 확인</a></p>{% endif %}
+  {% if e.draft_id %}<p class="meta">✓ 일정 초안을 만들었어요 — <a href="/approvals">승인 화면에서 확인</a>해야 캘린더에 들어가요</p>{% endif %}
+</section>
+{% else %}<div class="card empty"><p class="meta">확인할 후보가 없어요.</p></div>{% endfor %}
+<p><a class="btn" href="/kids">← 아이 준비물로</a></p>
+{% include "_js.html" %}
+<script>
+document.querySelectorAll('[data-event]').forEach(function(card){
+  var id=card.dataset.event;
+  card.querySelectorAll('[data-act]').forEach(function(b){b.onclick=async function(){
+    try{await post('/api/notice/'+id+'/'+b.dataset.act);if(b.dataset.act==='dismiss'||b.dataset.act==='finish'){card.remove()}else{location.reload()}}catch(e){}}});
+  var pick=card.querySelector('.child-pick');
+  if(pick)pick.onchange=async function(){try{await post('/api/notice/'+id+'/child',{index:pick.value===''?null:parseInt(pick.value,10)});toast('저장했어요')}catch(e){}};
+});
+</script>
+{% endblock %}

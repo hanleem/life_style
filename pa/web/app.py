@@ -47,9 +47,9 @@ def create_app(settings: Settings, con, router, *, http=None, tts=None) -> FastA
     app.include_router(auth.router)
     from pa.web import (routes, routes_google, routes_health, routes_meals, routes_routine, routes_scout,
                         routes_settings, routes_tasks, routes_voice, routes_welcome)
-    from pa.web import routes_devices, routes_pwa
+    from pa.web import routes_devices, routes_kids, routes_notice, routes_pwa
     for mod in (routes, routes_scout, routes_google, routes_routine, routes_voice, routes_meals, routes_settings,
-                routes_tasks, routes_health, routes_welcome, routes_devices, routes_pwa):
+                routes_tasks, routes_health, routes_welcome, routes_devices, routes_pwa, routes_kids, routes_notice):
         app.include_router(mod.router)
     push.ensure_keys(settings.data_dir)   # 첫 실행 때 웹 푸시(VAPID) 키를 만든다
     push.configure(push.Config(data_dir=settings.data_dir, contact=settings.vapid_contact))

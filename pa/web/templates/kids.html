@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% set tab = 'life' %}
+{% block strip_right %}아이{% endblock %}
+{% block body %}
+<h2>아이 준비물·시간표</h2>
+{% if not has_children %}
+<div class="card empty"><p class="meta">가족 프로필에 아이가 없어요. <a href="/welcome?restart=1">인터뷰 다시 하기</a>에서 아이를 넣어 주세요.</p></div>
+{% endif %}
+<section class="card" id="kids-tomorrow">
+  <p><strong>내일({{ tomorrow_label }}) 준비물</strong></p>
+  {% for who, items in tomorrow_groups %}
+    <p class="meta">{{ who or '가족 공통' }}</p>
+    <ul>{% for i in items %}<li>{{ i.text }} <span class="meta">· {{ i.why }}</span></li>{% endfor %}</ul>
+  {% else %}<p class="meta">내일 챙길 준비물이 없어요.</p>{% endfor %}
+  {% if tomorrow.lines %}<p class="meta">내일 일정</p><ul>{% for l in tomorrow.lines %}<li>{{ l }}</li>{% endfor %}</ul>{% endif %}
+  <p class="meta">저녁에 알림으로도 알려 드려요.</p>
+</section>
+<section class="card" id="kids-today">
+  <p><strong>오늘({{ today_label }}) 시간표</strong></p>
+  {% if today.lines %}<ul>{% for l in today.lines %}<li>{{ l }}</li>{% endfor %}</ul>{% else %}<p class="meta">오늘은 등교·학원 일정이 없어요.</p>{% endif %}
+</section>
+{% if pending_notices %}<a class="card now-card" href="/notice"><div class="meta">가정통신문</div><b>확인할 가정통신문 {{ pending_notices }}건</b> <span class="chip chip-a">확인하기</span></a>{% endif %}
+<p><a class="btn btn-primary" href="/notice">가정통신문 사진 올리기</a></p>
+<p><a class="btn" href="/kids/settings">등교·학원 시간 설정</a></p>
+{% endblock %}

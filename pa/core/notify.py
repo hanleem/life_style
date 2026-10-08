@@ -11,12 +11,13 @@ from pa.ids import new_id
 ALLOWED = {"approval_request": "/approvals",
            "briefing_morning": "/", "briefing_evening": "/", "decision_needed": "/",
            "system": "/settings/health",
-           "routine_supply": "/routine", "routine_close": "/routine/evening", "reminder": "/", "meal_plan": "/meals"}
+           "routine_supply": "/routine", "routine_close": "/routine/evening", "reminder": "/", "meal_plan": "/meals", "kids_prep": "/kids"}
 _TITLES = {"approval_request": "승인 요청 {n}건",
            "briefing_morning": "아침 브리핑", "briefing_evening": "저녁 브리핑",
            "decision_needed": "결정이 필요한 일 {n}건", "system": "비서 점검 필요",
            "routine_supply": "이번 주 주문 확인", "routine_close": "하루 마무리 시간입니다",
-           "reminder": "챙길 일이 있습니다", "meal_plan": "이번 주 식단이 나왔어요"}
+           "reminder": "챙길 일이 있습니다", "meal_plan": "이번 주 식단이 나왔어요",
+           "kids_prep": "내일 준비물이 있어요"}
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS notification (

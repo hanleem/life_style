@@ -147,3 +147,9 @@ CREATE TABLE IF NOT EXISTS push_subscription (
   id TEXT PRIMARY KEY, device_id TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL,
   created_at TEXT NOT NULL, failed_count INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS notice_event (
+  id TEXT PRIMARY KEY, created_at TEXT NOT NULL, title TEXT NOT NULL, event_date TEXT, start_time TEXT,
+  items_json TEXT NOT NULL DEFAULT '[]', child_hint TEXT, child_index INTEGER, note TEXT,
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','added','dismissed')),
+  task_ids_json TEXT, draft_id TEXT
+);

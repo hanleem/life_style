@@ -218,6 +218,10 @@ async def run_due_jobs(con, now: datetime, rules, cal, router) -> list[str]:
                 await _deliver_held(con, now)
             elif job.startswith("meal_"):
                 await meals.run_job(con, job, now, rules, router)
+            elif job == "kids_prep":
+                from pa.core import kids, profile
+                from pa.settings import Settings
+                await kids.run_prep_job(con, now, rules, profile.load(Settings().data_dir))
         except Exception as e:
             log_failure(log, f"job failed: {job}", e)
     return ran
